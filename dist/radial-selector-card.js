@@ -2490,6 +2490,6 @@
     name: 'Radial Selector Card',
     preview: true,
     description: 'Sélecteur rotatif : entités en cercle, boutons de coin, ligne de boutons, variateur et réduction temporisée.',
-    documentationURL: 'https://github.com/__OWNER__/radial-selector-card',
+    documentationURL: 'https://github.com/benshoesweb/radial-selector-card',
   });
 })();
