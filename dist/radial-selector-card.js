@@ -1,10 +1,18 @@
 /*
- * radial-selector-card — sélecteur rotatif pour Home Assistant (v5)
+ * radial-selector-card — sélecteur rotatif pour Home Assistant
+ * https://github.com/benshoesweb/radial-selector-card
  *
  * Fonctionnalités incluses :
  *   - Éditeur visuel intégré (composants natifs HA <ha-entity-picker>, <ha-icon-picker>)
  *     qui conserve toutes les autres clés de la configuration (grid_options, visibility, card_mod…)
+ *     Carte et éditeur en français ou en anglais selon la langue de Home Assistant.
  *   - Entités dans le cercle (items : 2 à 10), couleur au choix par entrée (color, sinon arc-en-ciel)
+ *   - Groupes : une entrée avec ses propres « items » ouvre un sous-cercle (appui sur le bouton = retour)
+ *   - Molette à l'appui long : luminosité (puis blanc et couleur par appuis longs successifs),
+ *     volume (media_player), position (cover), consigne (climate), vitesse (fan), input_number / number
+ *   - Appui long sur le bouton central (center_hold_action) : all_off (tout éteindre), pop-up, vue, scène…
+ *   - Bouton fermé : nombre d'entités allumées (show_count) et halo coloré (show_halo)
+ *   - Retour haptique au doigt (haptics), mode nuit (night_mode: sun | entity | always, night_entity, night_level)
  *   - Entités en ligne en dessous (row_items) : style tile/metal, action, couleurs
  *   - Boutons dans les coins (extra_buttons, 4 max) : coin, style, action / pop-up, couleurs
  *   - Réduction automatique (auto_close)
@@ -492,6 +500,8 @@
         --rsc-knob-on-darker 0.3s ease,
         --rsc-knob-glow 0.3s ease;
     }
+    /* Pendant le réglage, repère du bouton raccourci vers l'extérieur (place pour la valeur) */
+    .selector.dimming .knob::after { height: 9%; top: calc(var(--radius) * 0.1); }
     .arc {
       --rsc-arc-color: var(--rsc-cur-i, hsl(0 0% 66%));
       position: absolute;
@@ -540,8 +550,11 @@
       position: absolute;
       inset: 0;
       z-index: 3;
-      display: grid;
-      place-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--radius) * 0.035);
       pointer-events: none;
       font: 600 calc(var(--radius) * 0.17) / 1 Roboto, "Segoe UI", sans-serif;
       font-variant-numeric: tabular-nums;
@@ -550,7 +563,154 @@
       opacity: 0;
       transition: opacity 0.2s ease;
     }
+    .pct b { font-weight: 600; white-space: nowrap; }
+    .pct b.s { font-size: 0.86em; }
+    .pct b.xs { font-size: 0.7em; }
+    .pct small {
+      font-size: max(8px, calc(var(--radius) * 0.065));
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    .pct .dots { display: flex; gap: 4px; }
+    .pct .dots i {
+      width: max(4px, calc(var(--radius) * 0.035));
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.3;
+    }
+    .pct .dots i.on { opacity: 1; }
     .selector.dimming .pct { opacity: 1; }
+    /* Lumière : blanc chaud -> froid, puis teinte (appuis longs successifs) */
+    .selector.mode-temp .arc-ring {
+      background: conic-gradient(from 225deg, #ff9329 0deg, #ffc58f 70deg, #fff1e0 135deg, #e6efff 200deg, #a9c6ff 270deg, transparent 270deg 360deg);
+    }
+    .selector.mode-hue .arc-ring {
+      background: conic-gradient(from 225deg, hsl(0 100% 55%) 0deg, hsl(60 100% 50%) 45deg, hsl(120 100% 45%) 90deg,
+        hsl(180 100% 45%) 135deg, hsl(240 100% 62%) 180deg, hsl(300 100% 55%) 225deg, hsl(360 100% 55%) 270deg, transparent 270deg 360deg);
+    }
+    .selector.mode-temp .arc-ring, .selector.mode-hue .arc-ring {
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+    }
+
+    /* ---------- Groupes : sous-cercle ouvert ---------- */
+    .crumb {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      color: var(--rsc-icon-color);
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.25s ease, transform 0.3s ease;
+    }
+    .crumb .crumb-icon {
+      --mdc-icon-size: calc(var(--radius) * 0.3);
+      display: flex;
+      filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.35));
+    }
+    .crumb .crumb-back {
+      --mdc-icon-size: max(12px, calc(var(--radius) * 0.13));
+      position: absolute;
+      left: 50%;
+      top: 69%;
+      transform: translateX(-50%);
+      display: flex;
+      opacity: 0.75;
+    }
+    .selector.active.in-group .crumb { opacity: 0.9; transform: scale(1); }
+    .selector.dimming .crumb { opacity: 0; }
+    /* Repère discret sous l'icône d'un groupe (fermé) */
+    li.group:not(.has-lvl) .icon::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: calc(50% + var(--radius) * 0.15);
+      width: calc(var(--radius) * 0.13);
+      height: max(3px, calc(var(--radius) * 0.03));
+      transform: translateX(-50%);
+      background: radial-gradient(circle closest-side, currentColor 70%, transparent 75%) 0 0 / 33.4% 100% repeat-x;
+      opacity: 0.7;
+    }
+
+    /* ---------- Bouton fermé : nombre d'entités allumées et halo ---------- */
+    .badge {
+      position: absolute;
+      top: -1%;
+      right: -1%;
+      z-index: 4;
+      min-width: max(18px, calc(var(--radius) * 0.22));
+      height: max(18px, calc(var(--radius) * 0.22));
+      padding: 0 calc(var(--radius) * 0.05);
+      box-sizing: border-box;
+      border-radius: 9999px;
+      display: grid;
+      place-items: center;
+      font: 700 max(10px, calc(var(--radius) * 0.12)) / 1 Roboto, "Segoe UI", sans-serif;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-primary-color, #fff);
+      background: var(--rsc-badge-bg, var(--primary-color, #03a9f4));
+      box-shadow: 0 0 0 2px var(--rsc-outer-bg), 0 2px 5px rgb(0 0 0 / 0.4);
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.3);
+      transition: opacity 0.2s ease, transform 0.35s cubic-bezier(0.34, 1.6, 0.5, 1);
+    }
+    .selector.count-on:not(.active) .badge { opacity: 1; transform: scale(1); transition-delay: 0.15s; }
+    .halo {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 0;
+      width: calc(100% + var(--radius) / 9 + 16px);
+      aspect-ratio: 1 / 1;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .halo-ring, .halo-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--rsc-halo, none);
+    }
+    .halo-ring {
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+    }
+    .halo-glow {
+      inset: -4px;
+      filter: blur(5px);
+      opacity: 0.75;
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 14px), #000 calc(100% - 9px), #000 calc(100% - 4px), transparent 100%);
+      mask: radial-gradient(farthest-side, transparent calc(100% - 14px), #000 calc(100% - 9px), #000 calc(100% - 4px), transparent 100%);
+    }
+    .selector.halo-on:not(.active) .halo { opacity: 1; transition-delay: 0.25s; }
+
+    /* ---------- Appui long au centre : onde de confirmation ---------- */
+    .flash-ring {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    @keyframes rsc-flash {
+      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--rsc-flash, var(--primary-color, #03a9f4)) 75%, transparent); }
+      100% { box-shadow: 0 0 0 calc(var(--radius) * 0.45) transparent; }
+    }
+    .selector.flash .flash-ring { animation: rsc-flash 0.65s ease-out; }
+    .selector.flash::after { transform: scale(0.94); }
+
+    /* ---------- Mode nuit ---------- */
+    .wrap { transition: filter 1.2s ease; }
+    .wrap.night { filter: brightness(var(--rsc-night, 0.6)) saturate(0.8); }
 
     /* ---------- Boutons satellites (coins) ---------- */
     .frame {
@@ -951,6 +1111,160 @@
     }
   `;
 
+  // ---------- Traductions (suit la langue de Home Assistant ; anglais par défaut) ----------
+  const I18N = {
+    fr: {
+      selector: 'Sélecteur', back: 'Retour', button: 'Bouton', entity_fb: 'Entité',
+      m_brightness: 'Luminosité', m_temp: 'Blanc', m_hue: 'Couleur',
+      err_config: 'radial-selector-card : configuration invalide.',
+      err_items: 'radial-selector-card : "items" (entités du cercle) doit contenir entre 2 et 10 entrées.',
+      stub_name: 'Éclairage', stub_1: 'Séjour', stub_2: 'Salon', stub_3: 'Cuisine', stub_4: 'Entrée', stub_5: 'Chambre', stub_6: 'Terrasse', stub_covers: 'Volets',
+      card_desc: 'Sélecteur rotatif : entités en cercle, groupes, molette (luminosité, couleur, volume, volets, thermostat), boutons de coin et ligne de boutons.',
+
+      sec_general: 'Paramètres généraux', card_name: 'Nom de la carte', card_name_ph: 'Éclairage',
+      auto_close: 'Réduction automatique (secondes, 0 = jamais)', size: 'Taille du bouton central (px)', auto: 'Auto',
+      theme: 'Thème', theme_auto: 'Auto (thème HA)', theme_dark: 'Sombre', theme_light: 'Clair',
+      show_label: 'Afficher le libellé sous le cercle',
+      close_on_select: 'Réduire immédiatement après une sélection',
+      show_brightness: 'Afficher la valeur sous l\'icône (luminosité, volume, position, consigne…)',
+      show_count: 'Afficher le nombre d\'entités allumées sur le bouton fermé',
+      show_halo: 'Halo coloré des entrées allumées autour du bouton fermé',
+      haptics: 'Retour haptique (vibration) sur écran tactile',
+
+      sec_knob: 'Style du bouton', knob_theme: 'Thème du bouton',
+      skin_metal: 'Métal brossé (défaut)', skin_ha: 'Thème Home Assistant (suit le thème actif)', skin_glass: 'Verre dépoli',
+      skin_neumorph: 'Doux (relief mat)', skin_brass: 'Laiton vintage', skin_carbon: 'Carbone', skin_neon: 'Néon',
+      open_animation: 'Animation d\'ouverture',
+      anim_fan: 'Éventail (défaut)', anim_bloom: 'Éclosion', anim_spiral: 'Spirale', anim_cascade: 'Cascade', anim_pop: 'Rebond', anim_fade: 'Fondu', anim_none: 'Aucune',
+      palette: 'Couleurs des entrées sans couleur choisie', pal_rainbow: 'Arc-en-ciel (défaut)', pal_theme: 'Couleur principale du thème HA',
+      zone_opacity: 'Remplissage de la zone survolée :',
+      knob_hint: '« Thème Home Assistant » reprend les couleurs du thème actif et change avec lui. Si « réduire les animations » est activé sur l\'appareil, l\'ouverture se fait en fondu.',
+
+      sec_center: 'Bouton central', center_hold: 'Appui long sur le bouton central',
+      c_none: 'Aucune action (défaut)', c_all_off: 'Tout éteindre (entités du cercle)', c_popup: 'Ouvrir une pop-up (#…)',
+      c_navigate: 'Aller à une vue / une page', c_scene: 'Activer une scène', c_custom: 'Personnalisée (YAML)',
+      center_hint: 'Un appui simple ouvre ou ferme le cercle (ou revient en arrière dans un groupe). « Tout éteindre » concerne les lumières, prises, ventilateurs et interrupteurs virtuels du cercle et de ses groupes.',
+      popup_hash: 'Pop-up (hash Bubble Card)', path: 'Chemin', scene: 'Scène',
+      custom_hint: 'Action définie en YAML : elle est conservée telle quelle.',
+
+      sec_night: 'Mode nuit', night_mode: 'Activation',
+      n_off: 'Désactivé (défaut)', n_sun: 'Au coucher du soleil', n_entity: 'Quand une entité est allumée', n_always: 'Toujours',
+      night_entity: 'Entité (ex. input_boolean.nuit)', night_level: 'Luminosité de la carte la nuit :',
+      night_hint: 'Les couleurs de la carte sont atténuées pour ne pas éblouir (écran mural, chambre).',
+
+      sec_card: 'Apparence de la carte', card_style: 'Fond et contour',
+      cs_border_only: 'Contour sans fond (défaut)', cs_standard: 'Fond + contour (thème HA)', cs_background_only: 'Fond sans contour', cs_transparent: 'Transparente (ni fond ni contour)',
+      card_background: 'Couleur du fond', card_border_color: 'Couleur du contour', theme_ha: 'Thème HA',
+
+      sec_items: 'Entités dans le cercle ({n}/10)', add: '+ Ajouter',
+      items_hint: 'Entre 2 et 10 entrées autour du cadran. Couleur vide : arc-en-ciel selon la position.',
+      hold_hint: 'Appui long = molette : luminosité, volume, position de volet, consigne de thermostat, vitesse de ventilateur, valeur numérique. Sur une lumière couleur, appuis longs successifs : luminosité → blanc → couleur.',
+      item_title: 'Position cercle #{n}', sub_title: 'Entrée #{n}', entity: 'Entité',
+      name_opt: 'Nom (optionnel)', name_ph: 'Nom de l\'entité', icon_opt: 'Icône (optionnel)',
+      color: 'Couleur', color_auto: 'Auto (arc-en-ciel)', hold: 'Appui long',
+      hold_auto: 'Molette si possible (défaut)', hold_force: 'Molette forcée (lumière)', hold_off: 'Fenêtre d\'infos HA',
+      is_group: 'Groupe : ouvre un sous-cercle d\'entrées',
+      group_hint: 'Appui = ouvre le groupe ; appui sur le bouton central = retour. Entité du groupe facultative (ex. un groupe de lumières HA) : sans entité, l\'appui long allume ou éteint tout le groupe.',
+      sub_items: 'Entrées du groupe ({n}/10)',
+
+      sec_extra: 'Boutons dans les coins ({n}/4)', extra_hint: 'Accès direct, même cadran fermé : pop-up Bubble Card, vue, appareil…',
+      no_extra: 'Aucun bouton de coin.', extra_title: 'Bouton de coin #{n}',
+      extra_entity_hint: 'L\'entité sert au voyant (allumé / éteint) et à la fenêtre d\'infos ; elle est facultative.',
+      name_tip: 'Nom / info-bulle', name_auto: 'Nom auto', icon: 'Icône', corner: 'Coin',
+      pos_auto: 'Auto (premier coin libre)', 'pos_bottom-right': 'Bas droite', 'pos_bottom-left': 'Bas gauche', 'pos_top-right': 'Haut droite', 'pos_top-left': 'Haut gauche',
+      style: 'Style', st_tile: 'Tuile', st_metal: 'Métal', colors: 'Couleurs', c_on: 'Allumé', c_off: 'Éteint', c_bg: 'Fond de la tuile', theme_ph: 'Thème',
+
+      sec_rows: 'Entités en ligne en dessous ({n})', rows_hint: 'Boutons d\'accès rapide alignés sous le cercle.',
+      no_rows: 'Aucune entité en ligne.', row_title: 'Bouton en ligne #{n}',
+
+      tap_action: 'Action à l\'appui', a_default: 'Par défaut ({d})', a_popup: 'Ouvrir une pop-up (#…)', a_navigate: 'Aller à une vue / une page',
+      a_toggle: 'Allumer / éteindre', 'a_more-info': 'Fenêtre d\'infos HA', a_all_off: 'Tout éteindre (entités du cercle)', a_none: 'Aucune', a_custom: 'Personnalisée (YAML)',
+      def_toggle: 'allumer / éteindre', def_more: 'fenêtre d\'infos',
+      up: 'Monter', down: 'Descendre', delete: 'Supprimer', clear: 'Couleur par défaut',
+    },
+    en: {
+      selector: 'Selector', back: 'Back', button: 'Button', entity_fb: 'Entity',
+      m_brightness: 'Brightness', m_temp: 'White', m_hue: 'Color',
+      err_config: 'radial-selector-card: invalid configuration.',
+      err_items: 'radial-selector-card: "items" (dial entities) must contain between 2 and 10 entries.',
+      stub_name: 'Lighting', stub_1: 'Living room', stub_2: 'Lounge', stub_3: 'Kitchen', stub_4: 'Hallway', stub_5: 'Bedroom', stub_6: 'Terrace', stub_covers: 'Shutters',
+      card_desc: 'Rotary selector: entities around a dial, groups, rotary control (brightness, color, volume, covers, thermostat), corner buttons and a row of buttons.',
+
+      sec_general: 'General settings', card_name: 'Card name', card_name_ph: 'Lighting',
+      auto_close: 'Auto-collapse (seconds, 0 = never)', size: 'Center knob size (px)', auto: 'Auto',
+      theme: 'Theme', theme_auto: 'Auto (HA theme)', theme_dark: 'Dark', theme_light: 'Light',
+      show_label: 'Show the label under the dial',
+      close_on_select: 'Collapse right after a selection',
+      show_brightness: 'Show the value under the icon (brightness, volume, position, setpoint…)',
+      show_count: 'Show how many entities are on, on the closed knob',
+      show_halo: 'Colored halo of the entries that are on, around the closed knob',
+      haptics: 'Haptic feedback (vibration) on touch screens',
+
+      sec_knob: 'Knob style', knob_theme: 'Knob theme',
+      skin_metal: 'Brushed metal (default)', skin_ha: 'Home Assistant theme (follows the active theme)', skin_glass: 'Frosted glass',
+      skin_neumorph: 'Soft (neumorphic)', skin_brass: 'Vintage brass', skin_carbon: 'Carbon', skin_neon: 'Neon',
+      open_animation: 'Opening animation',
+      anim_fan: 'Fan (default)', anim_bloom: 'Bloom', anim_spiral: 'Spiral', anim_cascade: 'Cascade', anim_pop: 'Pop', anim_fade: 'Fade', anim_none: 'None',
+      palette: 'Colors of entries without a chosen color', pal_rainbow: 'Rainbow (default)', pal_theme: 'HA theme primary color',
+      zone_opacity: 'Hovered zone fill:',
+      knob_hint: '"Home Assistant theme" uses the colors of the active theme and changes with it. If "reduce motion" is enabled on the device, the dial opens with a fade.',
+
+      sec_center: 'Center knob', center_hold: 'Long press on the center knob',
+      c_none: 'No action (default)', c_all_off: 'Turn everything off (dial entities)', c_popup: 'Open a pop-up (#…)',
+      c_navigate: 'Go to a view / page', c_scene: 'Activate a scene', c_custom: 'Custom (YAML)',
+      center_hint: 'A short press opens or closes the dial (or goes back inside a group). "Turn everything off" applies to the lights, switches, fans and input booleans of the dial and its groups.',
+      popup_hash: 'Pop-up (Bubble Card hash)', path: 'Path', scene: 'Scene',
+      custom_hint: 'Action defined in YAML: it is kept as is.',
+
+      sec_night: 'Night mode', night_mode: 'Activation',
+      n_off: 'Off (default)', n_sun: 'After sunset', n_entity: 'When an entity is on', n_always: 'Always',
+      night_entity: 'Entity (e.g. input_boolean.night)', night_level: 'Card brightness at night:',
+      night_hint: 'The card\'s colors are dimmed so they don\'t dazzle (wall screen, bedroom).',
+
+      sec_card: 'Card appearance', card_style: 'Background and border',
+      cs_border_only: 'Border, no background (default)', cs_standard: 'Background + border (HA theme)', cs_background_only: 'Background, no border', cs_transparent: 'Transparent (no background, no border)',
+      card_background: 'Background color', card_border_color: 'Border color', theme_ha: 'HA theme',
+
+      sec_items: 'Dial entities ({n}/10)', add: '+ Add',
+      items_hint: 'Between 2 and 10 entries around the dial. Empty color: rainbow by position.',
+      hold_hint: 'Long press = rotary control: brightness, volume, cover position, thermostat setpoint, fan speed, number value. On a color light, successive long presses: brightness → white → color.',
+      item_title: 'Dial position #{n}', sub_title: 'Entry #{n}', entity: 'Entity',
+      name_opt: 'Name (optional)', name_ph: 'Entity name', icon_opt: 'Icon (optional)',
+      color: 'Color', color_auto: 'Auto (rainbow)', hold: 'Long press',
+      hold_auto: 'Rotary control when possible (default)', hold_force: 'Force rotary control (light)', hold_off: 'HA more-info dialog',
+      is_group: 'Group: opens a sub-dial of entries',
+      group_hint: 'Tap = opens the group; tap on the center knob = back. Optional group entity (e.g. an HA light group): without an entity, a long press turns the whole group on or off.',
+      sub_items: 'Group entries ({n}/10)',
+
+      sec_extra: 'Corner buttons ({n}/4)', extra_hint: 'Direct access, even with the dial closed: Bubble Card pop-up, view, device…',
+      no_extra: 'No corner button.', extra_title: 'Corner button #{n}',
+      extra_entity_hint: 'The entity drives the indicator (on / off) and the more-info dialog; it is optional.',
+      name_tip: 'Name / tooltip', name_auto: 'Auto name', icon: 'Icon', corner: 'Corner',
+      pos_auto: 'Auto (first free corner)', 'pos_bottom-right': 'Bottom right', 'pos_bottom-left': 'Bottom left', 'pos_top-right': 'Top right', 'pos_top-left': 'Top left',
+      style: 'Style', st_tile: 'Tile', st_metal: 'Metal', colors: 'Colors', c_on: 'On', c_off: 'Off', c_bg: 'Tile background', theme_ph: 'Theme',
+
+      sec_rows: 'Row of entities below ({n})', rows_hint: 'Quick-access buttons lined up under the dial.',
+      no_rows: 'No row entity.', row_title: 'Row button #{n}',
+
+      tap_action: 'Tap action', a_default: 'Default ({d})', a_popup: 'Open a pop-up (#…)', a_navigate: 'Go to a view / page',
+      a_toggle: 'Turn on / off', 'a_more-info': 'HA more-info dialog', a_all_off: 'Turn everything off (dial entities)', a_none: 'None', a_custom: 'Custom (YAML)',
+      def_toggle: 'turn on / off', def_more: 'more-info dialog',
+      up: 'Move up', down: 'Move down', delete: 'Delete', clear: 'Default color',
+    },
+  };
+
+  const langOf = (hass) => {
+    const l = String((hass && ((hass.locale && hass.locale.language) || hass.language))
+      || (typeof navigator !== 'undefined' && navigator.language) || 'en').toLowerCase();
+    return l.startsWith('fr') ? 'fr' : 'en';
+  };
+
+  const tr = (lang, key, vars) => {
+    let s = (I18N[lang] && I18N[lang][key]) ?? I18N.en[key] ?? key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
+    return s;
+  };
+
   // Normalise une entrée (accepte une string 'light.salon' ou un objet complet)
   const normalizeItem = (it, defaultStyle = null) => {
     if (typeof it === 'string') {
@@ -961,6 +1275,65 @@
     }
     return null;
   };
+
+  // Groupe : entrée qui ouvre un sous-cercle (items: [...])
+  const isGroup = (it) => !!it && Array.isArray(it.items) && it.items.length > 0;
+
+  // Normalise les entrées du cercle et leurs sous-groupes (10 entrées max par cercle)
+  const normalizeTree = (list, depth = 0) => [].concat(list || []).map((it) => normalizeItem(it)).filter(Boolean).map((it) => {
+    if (!Array.isArray(it.items)) return it;
+    const kids = depth < 3 ? normalizeTree(it.items, depth + 1).slice(0, 10) : [];
+    const { items, ...rest } = it;
+    return kids.length ? { ...rest, items: kids } : rest;
+  });
+
+  // Entités « feuilles » d'une liste (les sous-groupes sont parcourus)
+  const leaves = (list, out = []) => {
+    (list || []).forEach((it) => {
+      if (isGroup(it)) leaves(it.items, out);
+      else if (it && it.entity) out.push(String(it.entity));
+    });
+    return out;
+  };
+
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const r2 = (x) => Math.round(x * 100) / 100;
+
+  // Valeur réglée par la molette, arrondie au pas de l'appareil
+  const quant = (ctl, frac) => {
+    const raw = ctl.min + clamp(frac, 0, 1) * (ctl.max - ctl.min);
+    const v = ctl.min + Math.round((raw - ctl.min) / ctl.step) * ctl.step;
+    return clamp(Number(v.toFixed(6)), ctl.min, ctl.max);
+  };
+  const fracOf = (ctl, v) => (ctl.max > ctl.min ? clamp((v - ctl.min) / (ctl.max - ctl.min), 0, 1) : 0);
+  const decimals = (step) => (step < 1 ? Math.min(3, (String(step).split('.')[1] || '').length) : 0);
+
+  // Couleur approximative d'une température de blanc (K)
+  const kelvinRgb = (k) => {
+    const t = k / 100;
+    let r; let g; let b;
+    if (t <= 66) {
+      r = 255;
+      g = 99.4708 * Math.log(t) - 161.1196;
+      b = t <= 19 ? 0 : 138.5177 * Math.log(t - 10) - 305.0448;
+    } else {
+      r = 329.6987 * Math.pow(t - 60, -0.1332);
+      g = 288.1222 * Math.pow(t - 60, -0.0755);
+      b = 255;
+    }
+    const c = (x) => Math.round(clamp(x, 0, 255));
+    return `rgb(${c(r)} ${c(g)} ${c(b)})`;
+  };
+
+  // « Tout éteindre » (appui long au centre) : domaines concernés
+  const ALL_OFF_DOMAINS = ['light', 'switch', 'fan', 'input_boolean'];
+  // Appui long sur un groupe sans entité : domaines jamais basculés
+  const NO_TOGGLE = ['scene', 'script', 'button', 'input_button', 'lock', 'sensor', 'binary_sensor', 'camera', 'sun', 'weather', 'person', 'zone'];
+  const COLOR_MODES = ['hs', 'xy', 'rgb', 'rgbw', 'rgbww'];
+  const HOLD_MS = 500;
+  const CENTER_HOLD_MS = 600;
+  const MODE_WINDOW = 3000;     // appuis longs successifs sur une lumière : luminosité -> blanc -> couleur
+  const VIBRATE = { selection: 6, light: 10, medium: 18, heavy: 30, success: [12, 40, 12], warning: [20, 60, 20], failure: [30, 50, 30] };
 
   class RadialSelectorCard extends HTMLElement {
     constructor() {
@@ -974,15 +1347,22 @@
       this._touch = null;
       this._mouse = null;      // appui souris en cours dans une zone
       this._lastTouch = 0;
+      this._lastFinger = 0;    // dernier geste au doigt (retour haptique)
       this._lastDrag = 0;
+      this._knobHeld = false;
       this._autoClose = 10;
       this._closeTimer = null;
       this._armedAt = 0;
+      this._path = [];         // groupes ouverts (indices), [] = cercle principal
+      this._ringKey = '';
+      this._lastMode = null;
       this._uid = Math.random().toString(36).slice(2, 8);
     }
 
     connectedCallback() { if (this._open) this._armClose(); }
     disconnectedCallback() { clearTimeout(this._closeTimer); this._closeTimer = null; }
+
+    _t(key, vars) { return tr(langOf(this._hass), key, vars); }
 
     static async getConfigElement() {
       if (!customElements.get('ha-entity-picker') || !customElements.get('ha-icon-picker')) {
@@ -1000,37 +1380,44 @@
     }
 
     static getStubConfig(hass) {
+      const L = langOf(hass);
+      const t = (k) => tr(L, k);
       // Si possible, part des vraies lumières de l'installation
       const lights = hass && hass.states ? Object.keys(hass.states).filter((e) => e.startsWith('light.')).slice(0, 6) : [];
       if (lights.length >= 2) {
-        return { name: 'Éclairage', auto_close: 10, items: lights.map((entity) => ({ entity })) };
+        return { name: t('stub_name'), auto_close: 10, items: lights.map((entity) => ({ entity })) };
       }
       return {
-        name: 'Éclairage',
+        name: t('stub_name'),
         auto_close: 10,
         show_label: true,
         items: [
-          { name: 'Séjour', icon: 'mdi:table-furniture', entity: 'light.sejour' },
-          { name: 'Salon', icon: 'mdi:sofa', entity: 'light.salon' },
-          { name: 'Cuisine', icon: 'mdi:silverware-fork-knife', entity: 'light.cuisine' },
-          { name: 'Entrée', icon: 'mdi:door', entity: 'light.entree' },
-          { name: 'Chambre', icon: 'mdi:bed', entity: 'light.chambre' },
-          { name: 'Terrasse', icon: 'mdi:outdoor-lamp', entity: 'light.terrasse' },
+          { name: t('stub_1'), icon: 'mdi:table-furniture', entity: 'light.sejour' },
+          { name: t('stub_2'), icon: 'mdi:sofa', entity: 'light.salon' },
+          { name: t('stub_3'), icon: 'mdi:silverware-fork-knife', entity: 'light.cuisine' },
+          { name: t('stub_4'), icon: 'mdi:door', entity: 'light.entree' },
+          { name: t('stub_5'), icon: 'mdi:bed', entity: 'light.chambre' },
+          { name: t('stub_6'), icon: 'mdi:outdoor-lamp', entity: 'light.terrasse' },
         ],
         row_items: [
           { name: 'TV', icon: 'mdi:television', entity: 'media_player.tv', style: 'tile' },
-          { name: 'Volets', icon: 'mdi:window-shutter', entity: 'cover.volets', style: 'tile' }
-        ]
+          { name: t('stub_covers'), icon: 'mdi:window-shutter', entity: 'cover.volets', style: 'tile' },
+        ],
       };
     }
 
     setConfig(config) {
       if (!config) {
-        throw new Error('radial-selector-card : configuration invalide.');
+        throw new Error(this._t('err_config'));
       }
-      const rawItems = (config.items || config.circle_entities || []).map((it) => normalizeItem(it)).filter(Boolean);
+      // Même configuration qu'avant (l'éditeur renvoie souvent la même) : rien à reconstruire
+      let key = null;
+      try { key = JSON.stringify(config); } catch (e) { key = null; }
+      if (key && key === this._cfgKey && this._wrap) return;
+
+      const rawItems = normalizeTree(config.items || config.circle_entities || []);
       if (rawItems.length < 2 || rawItems.length > 10) {
-        throw new Error('radial-selector-card : "items" (entités du cercle) doit contenir entre 2 et 10 entrées.');
+        throw new Error(this._t('err_items'));
       }
 
       // Boutons satellites dans les 4 coins (optionnel)
@@ -1055,6 +1442,7 @@
         extra_buttons: xb,
         row_items: rawRow,
       };
+      this._cfgKey = key;
 
       const ac = config.auto_close === false ? 0 : Number(config.auto_close ?? 10);
       this._autoClose = Number.isFinite(ac) && ac >= 0 ? ac : 10;
@@ -1063,6 +1451,9 @@
       this._open = false;
       this._selected = 0;
       this._hover = null;
+      this._path = [];
+      this._lastMode = null;
+      this._haloKey = null;
       this._build();
       if (this._hass) this.hass = this._hass;
     }
@@ -1086,6 +1477,7 @@
     }
 
     _getEntityName(cfg, fallback = '') {
+      if (!cfg) return fallback;
       if (cfg.name) return cfg.name;
       if (this._hass && cfg.entity && this._hass.states[cfg.entity]) {
         const attrs = this._hass.states[cfg.entity].attributes;
@@ -1096,26 +1488,8 @@
 
     _build() {
       const c = this._config;
-      const n = c.items.length;
-      this._step = 360 / n;
       const size = Number(c.size);
       const stageStyle = size > 0 ? ` style="--radius:${size}px"` : '';
-
-      this._colors = c.items.map((_, i) => this._itemColors(i));
-
-      // Zones tactiles : un secteur de 360°/n par entrée, centré sur son icône, séparé des voisins
-      // par un trait ; la zone se remplit de la couleur de l'entrée sous la souris ou le doigt
-      const r2 = (x) => Math.round(x * 100) / 100;
-      const S = this._step;
-      const zoneOp = this._zoneOpacity();
-      const zones = c.items.map((_, i) => `<div class="zone" style="--rsc-zc:${this._colors[i].c};background:conic-gradient(from ${r2(S * i - S / 2)}deg, transparent 0deg 0.4deg, var(--rsc-zc) 1.2deg ${r2(S - 1.2)}deg, transparent ${r2(S - 0.4)}deg)"></div>`).join('')
-        + c.items.map((_, i) => `<div class="sep" style="transform:rotate(${r2(S * i - S / 2)}deg)"></div>`).join('');
-
-      const lis = c.items.map((it, i) => `
-        <li data-index="${i}" style="--rsc-n:${i + 1};--rsc-rot:${this._step * i}deg;--rsc-c:${this._colors[i].c};--rsc-cd:${this._colors[i].d};--rsc-ci:${this._colors[i].i}">
-          <div class="icon"><ha-icon data-circle-icon="${i}" icon="${esc(this._getEntityIcon(it, 'mdi:lightbulb'))}"></ha-icon><span class="lvl" aria-hidden="true"></span></div>
-          <input type="radio" name="rsc-${this._uid}" aria-label="${esc(this._getEntityName(it))}" ${i === 0 ? 'checked' : ''}>
-        </li>`).join('');
 
       const btnVars = (b) => {
         const vars = [`--rsc-xcolor:${cssColor(b.color) || '#a3be8c'}`];
@@ -1128,7 +1502,7 @@
         const vars = btnVars(b);
         const cls = ['xbtn', b.position, b.style === 'tile' ? 'tile' : '', b.entity ? 'has-state' : '', b.off_color ? 'has-off' : ''].filter(Boolean).join(' ');
         return `
-        <button class="${cls}" data-x="${j}" style="${vars.join(';')}" aria-label="${esc(this._getEntityName(b, 'Bouton'))}" title="${esc(this._getEntityName(b))}">
+        <button class="${cls}" data-x="${j}" style="${vars.join(';')}" aria-label="${esc(this._getEntityName(b, this._t('button')))}" title="${esc(this._getEntityName(b))}">
           <ha-icon data-x-icon="${j}" icon="${esc(this._getEntityIcon(b, 'mdi:power'))}"></ha-icon>
         </button>`;
       }).join('');
@@ -1138,7 +1512,7 @@
         const cls = ['rbtn', b.style === 'tile' ? 'tile' : '', b.entity ? 'has-state' : '', b.off_color ? 'has-off' : ''].filter(Boolean).join(' ');
         return `
         <div class="bottom-item">
-          <button class="${cls}" data-r="${k}" style="${vars.join(';')}" aria-label="${esc(this._getEntityName(b, 'Entité'))}" title="${esc(this._getEntityName(b))}">
+          <button class="${cls}" data-r="${k}" style="${vars.join(';')}" aria-label="${esc(this._getEntityName(b, this._t('entity_fb')))}" title="${esc(this._getEntityName(b))}">
             <ha-icon data-r-icon="${k}" icon="${esc(this._getEntityIcon(b, 'mdi:power'))}"></ha-icon>
           </button>
         </div>`;
@@ -1154,10 +1528,14 @@
           <div class="wrap skin-${this._skin()}">
             <div class="stage"${stageStyle}>
               <div class="selector anim-${this._anim()}">
-                <div class="knob" role="button" tabindex="0" aria-expanded="false" aria-label="${esc(c.name || 'Sélecteur')}"></div>
-                <ul><div class="zones" aria-hidden="true" style="--rsc-zone-a-hot:${zoneOp}">${zones}</div>${lis}</ul>
+                <div class="halo" aria-hidden="true"><div class="halo-glow"></div><div class="halo-ring"></div></div>
+                <div class="knob" role="button" tabindex="0" aria-expanded="false" aria-label="${esc(c.name || this._t('selector'))}"></div>
+                <ul></ul>
                 <div class="arc"><div class="arc-ring"></div><div class="tick"></div></div>
                 <div class="pct"></div>
+                <div class="crumb" aria-hidden="true"><ha-icon class="crumb-icon" icon="mdi:folder-multiple-outline"></ha-icon><ha-icon class="crumb-back" icon="mdi:arrow-u-left-top"></ha-icon></div>
+                <div class="flash-ring" aria-hidden="true"></div>
+                <span class="badge" aria-hidden="true"></span>
               </div>
               <div class="frame">${xbtns}</div>
             </div>
@@ -1172,18 +1550,21 @@
       this._knob = root.querySelector('.knob');
       this._label = root.querySelector('.label');
       this._pct = root.querySelector('.pct');
-      this._lis = [...root.querySelectorAll('li')];
-      this._zones = [...root.querySelectorAll('.zone')];
-      this._radios = [...root.querySelectorAll('input[type="radio"]')];
+      this._ul = root.querySelector('ul');
+      this._arc = root.querySelector('.arc');
+      this._crumb = root.querySelector('.crumb');
+      this._badge = root.querySelector('.badge');
+      this._halo = root.querySelector('.halo');
 
       const bindBtnEvents = (el, cfg, defaultTapAction) => {
         let timer = null;
         let held = false;
         const clear = () => { clearTimeout(timer); timer = null; };
-        el.addEventListener('pointerdown', () => {
+        el.addEventListener('pointerdown', (ev) => {
           held = false;
           clear();
-          timer = setTimeout(() => { timer = null; held = true; this._runBtn(cfg, 'hold', defaultTapAction); }, 500);
+          if (ev.pointerType === 'touch') this._lastFinger = Date.now();
+          timer = setTimeout(() => { timer = null; held = true; this._haptic('medium'); this._runBtn(cfg, 'hold', defaultTapAction); }, HOLD_MS);
         });
         el.addEventListener('pointerup', clear);
         el.addEventListener('pointerleave', clear);
@@ -1191,6 +1572,7 @@
         el.addEventListener('contextmenu', (ev) => ev.preventDefault());
         el.addEventListener('click', (ev) => {
           if (held) { held = false; ev.preventDefault(); return; }
+          this._haptic('light');
           this._runBtn(cfg, 'tap', defaultTapAction);
         });
       };
@@ -1203,24 +1585,45 @@
       this._rbtns = [...root.querySelectorAll('.rbtn')].map((el, k) => ({ el, cfg: c.row_items[k] }));
       this._rbtns.forEach(({ el, cfg }) => bindBtnEvents(el, cfg, 'toggle'));
 
-      this._knob.addEventListener('click', () => {
-        if (Date.now() - this._lastDrag < 500) return;
-        this._toggle();
+      // Bouton central : appui = ouvrir / fermer (ou revenir en arrière dans un groupe),
+      // appui long = action globale (center_hold_action)
+      const kn = this._knob;
+      let kTimer = null;
+      let kx = 0;
+      let ky = 0;
+      const kClear = () => { clearTimeout(kTimer); kTimer = null; };
+      kn.addEventListener('pointerdown', (e) => {
+        kClear();
+        this._knobHeld = false;
+        if (!this._centerAction() || (e.pointerType === 'mouse' && e.button !== 0)) return;
+        kx = e.clientX; ky = e.clientY;
+        kTimer = setTimeout(() => { kTimer = null; this._centerHold(); }, CENTER_HOLD_MS);
       });
-      this._knob.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._toggle(); }
+      kn.addEventListener('pointermove', (e) => { if (kTimer && Math.hypot(e.clientX - kx, e.clientY - ky) > 8) kClear(); });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => kn.addEventListener(t, kClear));
+      kn.addEventListener('contextmenu', (e) => { if (this._centerAction()) e.preventDefault(); });
+      kn.addEventListener('click', () => {
+        // le « click » qui suit un appui long au centre ne doit pas ouvrir / fermer
+        if (this._knobHeld) { this._knobHeld = false; return; }
+        if (Date.now() - this._lastDrag < 500) return;
+        this._knobTap();
+      });
+      kn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._knobTap(); }
       });
 
       const sel = this._sel;
       // Doigt et souris passent par les zones (secteurs) : toute la zone d'une entrée réagit,
       // pas seulement son icône (appui, appui long / variateur, survol)
       sel.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'touch') this._lastFinger = Date.now();
         this._bump();
         this._ptr = { x: e.clientX, y: e.clientY };
         this._touchDown(e);
         this._mouseDown(e);
       });
       sel.addEventListener('pointermove', (e) => {
+        if (e.pointerType === 'touch') this._lastFinger = Date.now();
         this._bump();
         this._ptr = { x: e.clientX, y: e.clientY };
         if (this._dim && e.pointerId === this._dim.id) this._dimMove(e);
@@ -1242,6 +1645,58 @@
       });
       sel.addEventListener('wheel', (e) => { this._bump(); this._wheel(e); }, { passive: false });
       sel.addEventListener('contextmenu', (e) => { if (this._open) e.preventDefault(); });
+      // Échap : revenir en arrière dans un groupe, sinon fermer
+      sel.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this._open) { e.preventDefault(); this._knobTap(); }
+      });
+
+      this._buildRing();
+      this._updateLabel();
+    }
+
+    // Liste affichée : cercle principal ou sous-cercle du groupe ouvert
+    _level() {
+      let list = this._config.items;
+      let parent = null;
+      const ok = [];
+      for (const i of this._path) {
+        const it = list[i];
+        if (!isGroup(it)) break;
+        parent = it;
+        list = it.items;
+        ok.push(i);
+      }
+      this._path = ok;
+      return { list, parent };
+    }
+
+    // (Re)construit les entrées du cercle affiché
+    _buildRing() {
+      const { list, parent } = this._level();
+      this._items = list;
+      this._parent = parent;
+      this._ringKey = this._path.join('/');
+      const n = list.length;
+      this._step = 360 / n;
+      this._colors = list.map((_, i) => this._itemColors(i));
+
+      // Zones tactiles : un secteur de 360°/n par entrée, centré sur son icône, séparé des voisins
+      // par un trait ; la zone se remplit de la couleur de l'entrée sous la souris ou le doigt
+      const S = this._step;
+      const zoneOp = this._zoneOpacity();
+      const zones = list.map((_, i) => `<div class="zone" style="--rsc-zc:${this._colors[i].c};background:conic-gradient(from ${r2(S * i - S / 2)}deg, transparent 0deg 0.4deg, var(--rsc-zc) 1.2deg ${r2(S - 1.2)}deg, transparent ${r2(S - 0.4)}deg)"></div>`).join('')
+        + (n > 1 ? list.map((_, i) => `<div class="sep" style="transform:rotate(${r2(S * i - S / 2)}deg)"></div>`).join('') : '');
+
+      const lis = list.map((it, i) => `
+        <li data-index="${i}" class="${isGroup(it) ? 'group' : ''}" style="--rsc-n:${i + 1};--rsc-rot:${this._step * i}deg;--rsc-c:${this._colors[i].c};--rsc-cd:${this._colors[i].d};--rsc-ci:${this._colors[i].i}">
+          <div class="icon"><ha-icon data-circle-icon="${i}" icon="${esc(this._getEntityIcon(it, isGroup(it) ? 'mdi:folder-multiple-outline' : 'mdi:lightbulb'))}"></ha-icon><span class="lvl" aria-hidden="true"></span></div>
+          <input type="radio" name="rsc-${this._uid}" aria-label="${esc(this._getEntityName(it))}" ${i === 0 ? 'checked' : ''}>
+        </li>`).join('');
+
+      this._ul.innerHTML = `<div class="zones" aria-hidden="true" style="--rsc-zone-a-hot:${zoneOp}">${zones}</div>${lis}`;
+      this._lis = [...this._ul.querySelectorAll('li')];
+      this._zones = [...this._ul.querySelectorAll('.zone')];
+      this._radios = [...this._ul.querySelectorAll('input[type="radio"]')];
 
       // Les icônes (boutons radio) ne servent plus qu'au clavier : Tab puis Espace / Entrée.
       // Un clic souris ou un appui tactile a déjà été traité par la zone.
@@ -1250,28 +1705,199 @@
           if (this._suppressClick || Date.now() - this._lastTouch < 700) { ev.preventDefault(); return; }
           this._activate(i);
         });
+        // Clavier : flèches = se déplacer (sans rien activer), Entrée / Espace = activer
+        radio.addEventListener('keydown', (ev) => {
+          const n = this._radios.length;
+          let to = null;
+          if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') to = (i + 1) % n;
+          else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') to = (i - 1 + n) % n;
+          else if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); this._activate(i); return; }
+          if (to == null) return;
+          ev.preventDefault();
+          this._radios[to].focus();
+        });
+        radio.addEventListener('focus', () => {
+          let kbd = true;
+          try { kbd = radio.matches(':focus-visible'); } catch (e) { /* ancien navigateur */ }
+          if (kbd && this._open && !this._mouse && !this._touch && Date.now() - this._lastTouch > 700) this._setHover(i);
+        });
+        radio.addEventListener('blur', () => { if (this._hover === i && !this._mouse && !this._touch) this._setHover(null); });
       });
 
+      // Groupe ouvert : son icône au centre du bouton (appui sur le bouton = retour)
+      this._sel.classList.toggle('in-group', !!parent);
+      const ci = this._crumb.querySelector('.crumb-icon');
+      if (parent) ci.setAttribute('icon', this._getEntityIcon(parent, 'mdi:folder-multiple-outline'));
+      this._knob.setAttribute('aria-label', parent
+        ? `${this._t('back')} (${this._getEntityName(parent, '')})`
+        : (this._config.name || this._t('selector')));
+
+      this._hover = null;
       this._select(0);
+    }
+
+    // Change de cercle (entrée / sortie d'un groupe) en rejouant l'animation d'ouverture
+    _rebuildRing() {
+      if (this._dim) this._dimEnd();
+      this._touchEnd();
+      this._mouseEnd();
+      const open = this._open;
+      if (open) this._sel.classList.remove('active');
+      this._buildRing();
+      this._updateStates();
+      if (open) {
+        void this._sel.offsetWidth;     // repart de l'état fermé pour animer les nouvelles icônes
+        this._sel.classList.add('active');
+      }
       this._updateLabel();
+      this._armClose();
     }
 
-    _canDim(i) {
-      const it = this._config.items[i];
-      const mode = it.dimmer !== undefined ? it.dimmer : (this._config.dimmer !== undefined ? this._config.dimmer : 'auto');
-      if (mode === false || !it.entity || !String(it.entity).startsWith('light.')) return false;
-      if (mode === true) return true;
-      const st = this._hass && this._hass.states[it.entity];
-      const attrs = st && st.attributes;
-      if (!attrs) return false;
-      return Array.isArray(attrs.supported_color_modes)
-        ? attrs.supported_color_modes.some((m) => m !== 'onoff')
-        : 'brightness' in attrs;
+    _enter(i) {
+      this._path = [...this._path, i];
+      this._haptic('light');
+      this._rebuildRing();
     }
 
-    _holdDims(i) {
-      return !this._config.items[i].hold_action && this._canDim(i);
+    _back() {
+      const from = this._path[this._path.length - 1];
+      this._path = this._path.slice(0, -1);
+      this._haptic('light');
+      this._rebuildRing();
+      if (from != null && from < this._items.length) this._select(from);
     }
+
+    _knobTap() {
+      if (this._open && this._path.length) this._back();
+      else this._toggle();
+    }
+
+    // ---------- Molette : ce que l'appui long règle sur une entrée ----------
+    // Lumière (luminosité, puis blanc et couleur), média (volume), volet (position),
+    // thermostat (consigne), ventilateur (vitesse), input_number / number (valeur).
+    _control(it, mode) {
+      if (!it || !it.entity || !this._hass) return null;
+      const opt = it.dimmer !== undefined ? it.dimmer : this._config.dimmer;
+      if (opt === false) return null;
+      const entity = String(it.entity);
+      const domain = entity.split('.')[0];
+      const st = this._hass.states[entity];
+      const a = (st && st.attributes) || {};
+      const feat = Number(a.supported_features) || 0;
+      const hass = this._hass;
+      const L = langOf(hass);
+      const num = (v, step) => Number(v).toLocaleString(L === 'fr' ? 'fr-FR' : 'en-US', { minimumFractionDigits: decimals(step), maximumFractionDigits: decimals(step) });
+      const pct = (v) => `${Math.round(v)}%`;
+      const base = { domain, entity, mode: 'value', modes: null, min: 0, max: 100, step: 1, wheel: 0.05, fmt: pct, lvl: (v) => (v > 0 ? pct(v) : null), label: null };
+
+      switch (domain) {
+        case 'light': {
+          const cm = Array.isArray(a.supported_color_modes) ? a.supported_color_modes : null;
+          const dims = opt === true || (cm ? cm.some((m) => m !== 'onoff') : 'brightness' in a);
+          if (!dims) return null;
+          if (!st && opt !== true) return null;
+          const hasColor = !!cm && cm.some((m) => COLOR_MODES.includes(m));
+          const hasTemp = !!cm && (cm.includes('color_temp') || hasColor);
+          const modes = ['brightness'].concat(hasTemp ? ['temp'] : [], hasColor ? ['hue'] : []);
+          const m = modes.includes(mode) ? mode : 'brightness';
+          const on = !!st && st.state === 'on';
+          if (m === 'temp') {
+            const min = Number(a.min_color_temp_kelvin) || 2000;
+            const max = Math.max(min + 100, Number(a.max_color_temp_kelvin) || 6500);
+            const cur = Number(a.color_temp_kelvin);
+            return {
+              ...base, mode: m, modes, min, max, step: 50, wheel: 0.05,
+              value: Number.isFinite(cur) && cur > 0 ? clamp(cur, min, max) : Math.round((min + max) / 200) * 100,
+              fmt: (v) => `${Math.round(v)} K`, lvl: () => null,
+              send: (v) => hass.callService('light', 'turn_on', { entity_id: entity, color_temp_kelvin: Math.round(v) }),
+            };
+          }
+          if (m === 'hue') {
+            const hs = Array.isArray(a.hs_color) ? a.hs_color : null;
+            const sat = hs && Number(hs[1]) > 20 ? Number(hs[1]) : 100;
+            return {
+              ...base, mode: m, modes, min: 0, max: 360, step: 1, wheel: 1 / 36,
+              value: hs && Number.isFinite(Number(hs[0])) ? Math.round(Number(hs[0])) : 0,
+              fmt: (v) => `${Math.round(v)}°`, lvl: () => null,
+              send: (v) => hass.callService('light', 'turn_on', { entity_id: entity, hs_color: [Math.round(v) % 360, sat] }),
+            };
+          }
+          const b = Number(a.brightness);
+          const value = on ? (Number.isFinite(b) && b > 0 ? Math.max(1, Math.round((b / 255) * 100)) : 100) : 0;
+          return {
+            ...base, mode: 'brightness', modes, value,
+            label: on && Number.isFinite(b) && b > 0 ? pct(value) : null,
+            send: (v) => (v <= 0
+              ? hass.callService('light', 'turn_off', { entity_id: entity })
+              : hass.callService('light', 'turn_on', { entity_id: entity, brightness_pct: Math.round(v) })),
+          };
+        }
+        case 'media_player': {
+          if (!st || (!(feat & 4) && !('volume_level' in a))) return null;
+          const value = Math.round((Number(a.volume_level) || 0) * 100);
+          return {
+            ...base, value, lvl: pct,
+            label: !OFF_STATES.includes(st.state) && 'volume_level' in a ? pct(value) : null,
+            send: (v) => hass.callService('media_player', 'volume_set', { entity_id: entity, volume_level: Math.round(v) / 100 }),
+          };
+        }
+        case 'cover': {
+          if (!st || (!(feat & 4) && !('current_position' in a))) return null;
+          const value = Math.round(Number(a.current_position) || 0);
+          return {
+            ...base, value,
+            label: 'current_position' in a && value > 0 ? pct(value) : null,
+            send: (v) => hass.callService('cover', 'set_cover_position', { entity_id: entity, position: Math.round(v) }),
+          };
+        }
+        case 'fan': {
+          if (!st || (!(feat & 1) && !('percentage' in a))) return null;
+          const step = clamp(Number(a.percentage_step) || 1, 1, 100);
+          const value = st.state === 'on' ? Math.round(Number(a.percentage) || 0) : 0;
+          return {
+            ...base, step, wheel: Math.max(0.05, step / 100), value,
+            label: st.state === 'on' && value > 0 ? pct(value) : null,
+            send: (v) => hass.callService('fan', 'set_percentage', { entity_id: entity, percentage: Math.round(v) }),
+          };
+        }
+        case 'climate': {
+          if (!st || typeof a.temperature !== 'number') return null;
+          const F = hass.config && hass.config.unit_system && hass.config.unit_system.temperature === '°F';
+          const min = Number.isFinite(Number(a.min_temp)) ? Number(a.min_temp) : (F ? 45 : 7);
+          const max = Number.isFinite(Number(a.max_temp)) && Number(a.max_temp) > min ? Number(a.max_temp) : (F ? 95 : 35);
+          const step = Number(a.target_temp_step) > 0 ? Number(a.target_temp_step) : (F ? 1 : 0.5);
+          const fmt = (v) => `${num(v, step)}°`;
+          return {
+            ...base, min, max, step, wheel: step / (max - min), value: clamp(a.temperature, min, max), fmt, lvl: fmt,
+            label: st.state !== 'off' ? fmt(a.temperature) : null,
+            send: (v) => hass.callService('climate', 'set_temperature', { entity_id: entity, temperature: v }),
+          };
+        }
+        case 'input_number':
+        case 'number': {
+          if (!st) return null;
+          const min = Number.isFinite(Number(a.min)) ? Number(a.min) : 0;
+          const max = Number.isFinite(Number(a.max)) && Number(a.max) > min ? Number(a.max) : min + 100;
+          const step = Number(a.step) > 0 ? Number(a.step) : 1;
+          const unit = a.unit_of_measurement ? String(a.unit_of_measurement) : '';
+          const cur = Number(st.state);
+          const short = (v) => `${num(v, step)}${unit && unit.length <= 3 ? (unit === '%' ? '%' : ` ${unit}`) : ''}`;
+          return {
+            ...base, min, max, step, wheel: Math.max(0.01, step / (max - min)),
+            value: Number.isFinite(cur) ? clamp(cur, min, max) : min,
+            fmt: (v) => `${num(v, step)}${unit ? (unit === '%' ? '%' : ` ${unit}`) : ''}`, lvl: short,
+            label: Number.isFinite(cur) ? short(cur) : null,
+            send: (v) => hass.callService(domain, 'set_value', { entity_id: entity, value: v }),
+          };
+        }
+        default:
+          return null;
+      }
+    }
+
+    // Noms historiques (compatibilité)
+    _canDim(i) { return !!this._control(this._items[i]); }
+    _holdDims(i) { const it = this._items[i]; return !!it && !it.hold_action && !!this._control(it); }
 
     _polar(x, y) {
       const r = this._sel.getBoundingClientRect();
@@ -1281,44 +1907,69 @@
       return { deg: (Math.atan2(dy, dx) * 180) / Math.PI, dist: Math.hypot(dx, dy), R };
     }
 
-    _dimStart(i, pointerId) {
+    _dimStart(i, pointerId, wheel = false) {
       if (this._dim) this._dimEnd();
-      const it = this._config.items[i];
-      const st = this._hass && this._hass.states[it.entity];
-      let v = 0;
-      if (st && st.state === 'on') {
-        const b = Number(st.attributes && st.attributes.brightness);
-        v = Number.isFinite(b) && b > 0 ? b / 255 : 1;
+      const it = this._items[i];
+      const first = this._control(it);
+      if (!first) return false;
+      // Appuis longs successifs sur la même lumière (moins de 3 s) : luminosité -> blanc -> couleur
+      let mode = first.mode;
+      const lm = this._lastMode;
+      if (first.modes && first.modes.length > 1 && lm && lm.it === it && Date.now() - lm.t < MODE_WINDOW) {
+        const k = first.modes.indexOf(lm.mode);
+        mode = wheel ? lm.mode : first.modes[(k + 1) % first.modes.length];
       }
+      const ctl = mode === first.mode ? first : (this._control(it, mode) || first);
+      const v = fracOf(ctl, ctl.value);
       const last = this._ptr ? this._polar(this._ptr.x, this._ptr.y).deg : null;
       this._dim = {
-        i, entity: it.entity, v, v0: v, id: pointerId, last,
-        sent: Math.round(v * 100), lastSend: 0, timer: null, wheelTimer: null, wheel: false,
+        i, it, ctl, v, id: pointerId, last,
+        sent: quant(ctl, v), lastSend: 0, timer: null, wheelTimer: null, wheel: false, bucket: undefined,
       };
       this._sel.classList.add('dimming');
+      this._sel.classList.toggle('mode-temp', ctl.mode === 'temp');
+      this._sel.classList.toggle('mode-hue', ctl.mode === 'hue');
       this._dimRender();
       if (pointerId != null) {
         try { this._sel.setPointerCapture(pointerId); } catch (err) { /* ignore */ }
       }
+      return true;
     }
 
     _dimRender() {
       const d = this._dim;
       if (!d) return;
-      this._sel.style.setProperty('--rsc-dim', String(d.v));
-      const pct = Math.round(d.v * 100);
-      this._pct.textContent = `${pct}%`;
-      // Le petit pourcentage sous l'icône suit le réglage en direct
-      if (this._config.show_brightness !== false) this._setLevel(d.i, pct > 0 ? pct : null);
+      const ctl = d.ctl;
+      const val = quant(ctl, d.v);
+      this._sel.style.setProperty('--rsc-dim', String(fracOf(ctl, val)));
+      const multi = ctl.modes && ctl.modes.length > 1;
+      const txt = ctl.fmt(val);
+      // texte long (« 3300 K », « 21,5° ») : plus petit pour ne pas toucher le repère du bouton
+      const size = txt.length >= 6 ? ' class="xs"' : (txt.length === 5 ? ' class="s"' : '');
+      this._pct.innerHTML = `<b${size}>${esc(txt)}</b>${multi
+        ? `<small>${esc(this._t(`m_${ctl.mode}`))}</small><span class="dots">${ctl.modes.map((m) => `<i class="${m === ctl.mode ? 'on' : ''}"></i>`).join('')}</span>`
+        : ''}`;
+      // Repère de l'arc : couleur réglée (blanc chaud / froid, teinte)
+      if (ctl.mode === 'temp') this._arc.style.setProperty('--rsc-arc-color', kelvinRgb(val));
+      else if (ctl.mode === 'hue') this._arc.style.setProperty('--rsc-arc-color', `hsl(${Math.round(val)} 100% 55%)`);
+      else this._arc.style.removeProperty('--rsc-arc-color');
+      // La petite valeur sous l'icône suit le réglage en direct
+      if (this._config.show_brightness !== false && ctl.mode !== 'temp' && ctl.mode !== 'hue') this._setLevel(d.i, ctl.lvl(val));
+      // Un léger « clic » haptique tous les 10 % (ou à chaque pas, s'il y en a peu)
+      const steps = Math.round((ctl.max - ctl.min) / ctl.step);
+      const bucket = steps <= 40 ? Math.round((val - ctl.min) / ctl.step) : Math.floor(fracOf(ctl, val) * 10 + 1e-9);
+      if (d.bucket !== undefined && bucket !== d.bucket) this._haptic('selection');
+      d.bucket = bucket;
     }
 
-    // Affiche (valeur) ou masque (null) le pourcentage sous l'icône d'une entrée
-    _setLevel(i, pct) {
+    // Affiche (texte) ou masque (null) la petite valeur sous l'icône d'une entrée
+    _setLevel(i, text) {
       const li = this._lis && this._lis[i];
       if (!li) return;
       const el = li.querySelector('.lvl');
-      li.classList.toggle('has-lvl', pct != null);
-      if (el) el.textContent = pct != null ? `${pct}%` : '';
+      const show = text != null && text !== '';
+      li.classList.toggle('has-lvl', show);
+      if (el) el.textContent = show ? String(text) : '';
     }
 
     _dimMove(e) {
@@ -1336,7 +1987,7 @@
     _dimSet(v) {
       const d = this._dim;
       if (!d) return;
-      d.v = Math.min(1, Math.max(0, v));
+      d.v = clamp(v, 0, 1);
       this._dimRender();
       this._dimSend(false);
     }
@@ -1344,7 +1995,7 @@
     _dimSend(final) {
       const d = this._dim;
       if (!d || !this._hass) return;
-      const pct = Math.round(d.v * 100);
+      const val = quant(d.ctl, d.v);
       const now = Date.now();
       if (!final && now - d.lastSend < 120) {
         if (!d.timer) {
@@ -1354,11 +2005,10 @@
       }
       clearTimeout(d.timer);
       d.timer = null;
-      if (pct === d.sent) return;
-      d.sent = pct;
+      if (val === d.sent) return;
+      d.sent = val;
       d.lastSend = now;
-      if (pct === 0) this._hass.callService('light', 'turn_off', { entity_id: d.entity });
-      else this._hass.callService('light', 'turn_on', { entity_id: d.entity, brightness_pct: pct });
+      d.ctl.send(val);
     }
 
     _dimEnd() {
@@ -1370,30 +2020,48 @@
       if (d.id != null) {
         try { this._sel.releasePointerCapture(d.id); } catch (err) { /* ignore */ }
       }
+      if (d.ctl.modes && d.ctl.modes.length > 1) this._lastMode = { it: d.it, mode: d.ctl.mode, t: Date.now() };
       this._dim = null;
-      this._sel.classList.remove('dimming');
+      this._sel.classList.remove('dimming', 'mode-temp', 'mode-hue');
       setTimeout(() => { this._suppressClick = false; }, 50);
     }
 
     _wheel(e) {
       if (!this._open) return;
       const i = this._dim ? this._dim.i : this._hover;
-      if (i == null || !this._canDim(i)) return;
+      if (i == null) return;
       if (this._dim && !this._dim.wheel) return;
+      if (!this._dim && !this._control(this._items[i])) return;
       e.preventDefault();
-      if (!this._dim) this._dimStart(i, null);
+      if (!this._dim && !this._dimStart(i, null, true)) return;
       const d = this._dim;
       d.wheel = true;
       const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-      this._dimSet(d.v - (Math.max(-100, Math.min(100, dy)) / 100) * 0.05);
+      this._dimSet(d.v - (clamp(dy, -100, 100) / 100) * d.ctl.wheel);
       clearTimeout(d.wheelTimer);
       d.wheelTimer = setTimeout(() => { if (this._dim === d) this._dimEnd(); }, 900);
     }
 
+    // Appui simple sur une entrée : ouvre le groupe, sinon lance son action
     _activate(i) {
+      const it = this._items[i];
+      if (!it) return;
+      if (isGroup(it) && !it.tap_action) { this._enter(i); return; }
       this._select(i);
+      this._haptic('light');
       this._run(i, 'tap');
       if (this._config.close_on_select) setTimeout(() => { if (this._open) this._toggle(); }, 450);
+    }
+
+    // Appui long sur une entrée : molette si possible, sinon action « hold »
+    _hold(i, pointerId) {
+      const it = this._items[i];
+      if (!it) return;
+      this._select(i);
+      this._haptic('medium');
+      if (!it.hold_action && this._control(it) && this._dimStart(i, pointerId)) return;
+      if (!it.hold_action && isGroup(it) && !it.entity) { this._toggleGroup(it); return; }
+      this._run(i, 'hold');
     }
 
     _pointAt(e) {
@@ -1404,7 +2072,7 @@
       const dist = Math.hypot(dx, dy);
       const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
       const rel = (((deg + 90) % 360) + 360) % 360;
-      const idx = Math.round(rel / this._step) % this._config.items.length;
+      const idx = Math.round(rel / this._step) % this._items.length;
       // valid : geste tactile (on peut partir du bouton) ; ring : dans la couronne des zones
       return { idx, valid: dist >= R * 0.2 && dist <= R * 2.9, ring: dist >= R * 1.05 && dist <= R * 2.65 };
     }
@@ -1423,10 +2091,8 @@
         if (this._mouse !== m || m.moved) return;
         m.held = true;
         this._suppressClick = true;
-        this._select(m.idx);
-        if (this._holdDims(m.idx)) this._dimStart(m.idx, m.id);
-        else this._run(m.idx, 'hold');
-      }, 500);
+        this._hold(m.idx, m.id);
+      }, HOLD_MS);
     }
 
     _mouseMove(e) {
@@ -1482,10 +2148,8 @@
             const q = this._pointAt(e);
             if (t.moved || !q.valid) return;
             t.held = true;
-            this._select(q.idx);
-            if (this._holdDims(q.idx)) this._dimStart(q.idx, t.id);
-            else this._run(q.idx, 'hold');
-          }, 500);
+            this._hold(q.idx, t.id);
+          }, HOLD_MS);
         }
       }
     }
@@ -1502,7 +2166,10 @@
       if (t.moved || !t.onKnob) {
         const p = this._pointAt(e);
         const next = p.valid ? p.idx : null;
-        if (next !== this._hover) this._setHover(next);
+        if (next !== this._hover) {
+          if (next != null) this._haptic('selection');
+          this._setHover(next);
+        }
       }
     }
 
@@ -1523,7 +2190,7 @@
       const t = this._touch;
       if (t) clearTimeout(t.timer);
       this._touch = null;
-      this._setHover(null);
+      if (this._lis) this._setHover(null);
     }
 
     _refreshHot() {
@@ -1552,22 +2219,26 @@
       return reduce && a !== 'none' ? 'fade' : a;
     }
 
-    // Couleurs d'une entrée du cercle : couleur choisie, sinon couleur du thème HA (palette: theme),
-    // sinon arc-en-ciel selon sa position
-    _itemColors(i) {
-      const it = (this._config.items && this._config.items[i]) || {};
-      const custom = it.color ? cssColor(it.color)
+    // Couleurs d'une entrée : couleur choisie, sinon couleur du thème HA (palette: theme),
+    // sinon arc-en-ciel selon sa position dans son cercle
+    _colorOf(it, i, n) {
+      const custom = it && it.color ? cssColor(it.color)
         : (this._config.palette === 'theme' ? 'var(--primary-color, #03a9f4)' : '');
       if (custom) {
         return { c: custom, d: `color-mix(in srgb, ${custom} 80%, #000)`, i: custom, a: custom };
       }
-      const hue = (this._step || 60) * i - 90;
+      const hue = (360 / (n || 6)) * i - 90;
       return {
         c: `hsl(${hue}deg 100% 72%)`,
         d: `hsl(${hue}deg 98% 61%)`,
         i: `hsl(${hue}deg 90% var(--rsc-on-lightness))`,
         a: `hsl(${hue}deg 100% var(--rsc-on-lightness))`,
       };
+    }
+
+    _itemColors(i) {
+      const list = this._items || this._config.items;
+      return this._colorOf(list[i], i, list.length);
     }
 
     // Apparence de la carte : réglée via les variables de ha-card (respecte le thème par défaut)
@@ -1597,9 +2268,20 @@
       if (this._dim) this._dimEnd();
       this._setHover(null);
       this._open = !this._open;
+      // Réouverture : toujours sur le cercle principal
+      if (this._open && this._ringKey !== this._path.join('/')) { this._buildRing(); this._updateStates(); }
       this._sel.classList.toggle('active', this._open);
       this._knob.setAttribute('aria-expanded', String(this._open));
-      if (!this._open) this._select(0);
+      if (!this._open) {
+        if (this._path.length) {
+          // Fermeture dans un groupe : retour au cercle principal une fois l'animation finie
+          this._path = [];
+          clearTimeout(this._resetTimer);
+          this._resetTimer = setTimeout(() => {
+            if (!this._open && this._ringKey !== '') { this._buildRing(); this._updateStates(); this._updateLabel(); }
+          }, 600);
+        } else this._select(0);
+      }
       this._updateLabel();
       this._armClose();
     }
@@ -1637,28 +2319,86 @@
       let text = c.name || '';
       if (this._open) {
         const k = this._hover != null ? this._hover : this._selected;
-        text = this._getEntityName(c.items[k], '');
+        text = this._getEntityName(this._items[k], '');
       }
       this._label.textContent = text;
       this._label.style.display = c.show_label ? '' : 'none';
     }
 
+    // ---------- États ----------
+    _entOn(entity) {
+      const st = this._hass && this._hass.states[entity];
+      return !!st && ON_STATES.includes(st.state);
+    }
+
+    _isOn(it) {
+      if (!it) return false;
+      if (it.entity) return this._entOn(it.entity);
+      if (isGroup(it)) return leaves(it.items).some((e) => this._entOn(e));
+      return false;
+    }
+
+    // Petite valeur sous l'icône : %, volume, position, consigne… ; « 2/4 » pour un groupe
+    _levelText(it) {
+      if (isGroup(it) && !it.entity) {
+        const ents = [...new Set(leaves(it.items))];
+        const on = ents.filter((e) => this._entOn(e)).length;
+        return on ? `${on}/${ents.length}` : null;
+      }
+      const ctl = this._control(it);
+      return ctl ? ctl.label : null;
+    }
+
+    _isNight() {
+      const c = this._config;
+      const h = this._hass;
+      if (!h) return false;
+      const mode = c.night_mode === true ? 'sun' : c.night_mode;
+      if (mode === 'always') return true;
+      if (mode === 'sun') {
+        const s = h.states['sun.sun'];
+        return !!s && s.state === 'below_horizon';
+      }
+      if (mode === 'entity') {
+        const s = c.night_entity && h.states[c.night_entity];
+        return !!s && (ON_STATES.includes(s.state) || s.state === 'below_horizon');
+      }
+      return false;
+    }
+
+    _nightLevel() {
+      const v = Number(this._config.night_level ?? 60);
+      return Number.isFinite(v) ? clamp(v, 10, 100) / 100 : 0.6;
+    }
+
     set hass(hass) {
       this._hass = hass;
       if (!this._wrap) return;
+      this._updateStates();
+    }
+
+    _updateStates() {
+      const hass = this._hass;
+      if (!hass || !this._wrap) return;
       const c = this._config;
       const dark = c.theme === 'dark' || (c.theme === 'auto' && hass.themes && hass.themes.darkMode);
       this._wrap.classList.toggle('dark', !!dark);
 
-      c.items.forEach((it, i) => {
-        const st = it.entity && hass.states[it.entity];
-        this._lis[i].classList.toggle('on', !!st && ON_STATES.includes(st.state));
-        // Pourcentage sous l'icône : lumière allumée avec variateur (sauf pendant son réglage)
+      // Mode nuit : carte atténuée
+      const night = this._isNight();
+      this._wrap.classList.toggle('night', night);
+      if (night) this._wrap.style.setProperty('--rsc-night', String(this._nightLevel()));
+      else this._wrap.style.removeProperty('--rsc-night');
+
+      this._items.forEach((it, i) => {
+        const li = this._lis[i];
+        if (!li) return;
+        li.classList.toggle('on', this._isOn(it));
+        // Valeur sous l'icône (sauf pendant son réglage)
         if (!(this._dim && this._dim.i === i)) {
-          const b = st && st.attributes ? Number(st.attributes.brightness) : NaN;
-          const show = c.show_brightness !== false && !!st && st.state === 'on' && this._canDim(i) && Number.isFinite(b) && b > 0;
-          this._setLevel(i, show ? Math.max(1, Math.round((b / 255) * 100)) : null);
+          this._setLevel(i, c.show_brightness !== false ? this._levelText(it) : null);
         }
+        const st = it.entity && hass.states[it.entity];
         const ic = this.shadowRoot.querySelector(`[data-circle-icon="${i}"]`);
         if (ic && !it.icon && st && st.attributes && st.attributes.icon) {
           ic.setAttribute('icon', st.attributes.icon);
@@ -1683,16 +2423,109 @@
         }
       });
 
+      this._updateIndicators();
       this._updateLabel();
     }
 
+    // Bouton fermé : nombre d'entités allumées + halo coloré à la place de chaque entrée allumée
+    _updateIndicators() {
+      const c = this._config;
+      const root = c.items;
+      const n = root.length;
+      const S = 360 / n;
+      const ents = [...new Set(leaves(root))];
+      const count = ents.filter((e) => this._entOn(e)).length;
+      const showCount = c.show_count !== false && count > 0;
+      this._badge.textContent = showCount ? String(count) : '';
+      this._sel.classList.toggle('count-on', showCount);
+
+      const lit = root.map((it, i) => (this._isOn(it) ? i : -1)).filter((i) => i >= 0);
+      const showHalo = c.show_halo !== false && lit.length > 0;
+      const key = showHalo ? `${lit.join(',')}|${c.palette || ''}` : '';
+      if (key !== this._haloKey) {
+        this._haloKey = key;
+        if (showHalo) {
+          const w = Math.min(S * 0.62, 46);
+          const stops = lit.map((i) => {
+            const col = this._colorOf(root[i], i, n).c;
+            const mid = S * i + S / 2;
+            return `transparent ${r2(mid - w / 2)}deg, ${col} ${r2(mid - w / 2 + 3)}deg, ${col} ${r2(mid + w / 2 - 3)}deg, transparent ${r2(mid + w / 2)}deg`;
+          });
+          this._halo.style.setProperty('--rsc-halo', `conic-gradient(from ${r2(-S / 2)}deg, transparent 0deg, ${stops.join(', ')}, transparent 360deg)`);
+        } else this._halo.style.removeProperty('--rsc-halo');
+      }
+      this._sel.classList.toggle('halo-on', showHalo);
+    }
+
+    // ---------- Retour haptique (appli HA mobile, sinon vibreur du navigateur) ----------
+    _haptic(type) {
+      if (this._config.haptics === false) return;
+      if (Date.now() - this._lastFinger > 2000) return;    // seulement au doigt
+      if (this._hass && this._hass.vibrate === false) return;
+      try { window.dispatchEvent(new CustomEvent('haptic', { detail: type })); } catch (e) { /* ignore */ }
+      const inApp = !!(window.externalApp || (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.externalBus));
+      if (!inApp && typeof navigator.vibrate === 'function') {
+        try { navigator.vibrate(VIBRATE[type] || 10); } catch (e) { /* ignore */ }
+      }
+    }
+
+    // ---------- Appui long sur le bouton central ----------
+    _centerAction() {
+      const a = this._config.center_hold_action;
+      if (!a) return null;
+      if (typeof a === 'string') return a === 'none' ? null : { action: a };
+      if (!a.action || a.action === 'none') return null;
+      if (a.action === 'navigate' && (!a.navigation_path || a.navigation_path === '#')) return null;
+      if ((a.perform_action || a.service) === 'scene.turn_on' && !(a.target && a.target.entity_id) && !(a.data && a.data.entity_id)) return null;
+      return a;
+    }
+
+    _centerHold() {
+      const a = this._centerAction();
+      if (!a) return;
+      this._knobHeld = true;
+      this._haptic('heavy');
+      const s = this._sel;
+      s.classList.remove('flash');
+      void s.offsetWidth;
+      s.classList.add('flash');
+      clearTimeout(this._flashTimer);
+      this._flashTimer = setTimeout(() => s.classList.remove('flash'), 700);
+      this._exec(a, a.entity);
+      this._armClose();
+    }
+
+    _allOff() {
+      if (!this._hass) return;
+      const ents = [...new Set(leaves(this._config.items))]
+        .filter((e) => ALL_OFF_DOMAINS.includes(e.split('.')[0]) && this._entOn(e));
+      if (ents.length) this._hass.callService('homeassistant', 'turn_off', { entity_id: ents });
+    }
+
+    // Appui long sur un groupe sans entité : tout éteindre s'il y a quelque chose d'allumé, sinon tout allumer
+    _toggleGroup(it) {
+      if (!this._hass) return;
+      const ents = [...new Set(leaves(it.items))].filter((e) => !NO_TOGGLE.includes(e.split('.')[0]));
+      if (!ents.length) return;
+      const on = ents.filter((e) => this._entOn(e));
+      if (on.length) this._hass.callService('homeassistant', 'turn_off', { entity_id: on });
+      else this._hass.callService('homeassistant', 'turn_on', { entity_id: ents });
+    }
+
     _run(i, kind) {
-      const item = this._config.items[i];
+      const item = this._items[i];
+      if (!item) return;
       const def = kind === 'hold'
         ? (item.entity ? { action: 'more-info' } : { action: 'none' })
         : (item.entity ? { action: 'toggle' } : { action: 'none' });
       const cfg = (kind === 'hold' ? item.hold_action : item.tap_action) || def;
       this._exec(cfg, cfg.entity || item.entity);
+    }
+
+    _navigate(path) {
+      if (!path) return;
+      history.pushState(null, '', path);
+      window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } }));
     }
 
     _exec(cfg, entity) {
@@ -1710,10 +2543,13 @@
           }
           break;
         case 'navigate':
-          if (cfg.navigation_path) {
-            history.pushState(null, '', cfg.navigation_path);
-            window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } }));
-          }
+          this._navigate(cfg.navigation_path);
+          break;
+        case 'popup':
+          this._navigate(cfg.popup || cfg.navigation_path);
+          break;
+        case 'all_off':
+          this._allOff();
           break;
         case 'url':
           if (cfg.url_path) window.open(cfg.url_path, cfg.new_tab === false ? '_self' : '_blank');
@@ -1925,6 +2761,14 @@
       color: var(--secondary-text-color);
       margin: 0 0 10px 0;
     }
+    .group-box {
+      border-left: 3px solid var(--primary-color, #03a9f4);
+      border-radius: 4px;
+      padding: 10px 0 2px 12px;
+      margin-top: 2px;
+    }
+    .group-box .section-title { font-size: 13px; }
+    .item-card.nested { background: rgba(128, 128, 128, 0.07); }
     .sub-title {
       font-size: 12px;
       font-weight: 600;
@@ -1933,59 +2777,40 @@
     }
   `;
 
-  const ACTIONS = [
-    ['default', 'Par défaut'],
-    ['popup', 'Ouvrir une pop-up (#…)'],
-    ['navigate', 'Aller à une vue / une page'],
-    ['toggle', 'Allumer / éteindre'],
-    ['more-info', 'Fenêtre d\'infos HA'],
-    ['none', 'Aucune'],
-  ];
-  const POS_LABELS = [
-    ['', 'Auto (premier coin libre)'],
-    ['bottom-right', 'Bas droite'],
-    ['bottom-left', 'Bas gauche'],
-    ['top-right', 'Haut droite'],
-    ['top-left', 'Haut gauche'],
-  ];
-  const CARD_STYLE_LABELS = [
-    ['border_only', 'Contour sans fond (défaut)'],
-    ['standard', 'Fond + contour (thème HA)'],
-    ['background_only', 'Fond sans contour'],
-    ['transparent', 'Transparente (ni fond ni contour)'],
-  ];
-  const SKIN_LABELS = [
-    ['metal', 'Métal brossé (défaut)'],
-    ['ha', 'Thème Home Assistant (suit le thème actif)'],
-    ['glass', 'Verre dépoli'],
-    ['neumorph', 'Doux (relief mat)'],
-    ['brass', 'Laiton vintage'],
-    ['carbon', 'Carbone'],
-    ['neon', 'Néon'],
-  ];
-  const ANIM_LABELS = [
-    ['fan', 'Éventail (défaut)'],
-    ['bloom', 'Éclosion'],
-    ['spiral', 'Spirale'],
-    ['cascade', 'Cascade'],
-    ['pop', 'Rebond'],
-    ['fade', 'Fondu'],
-    ['none', 'Aucune'],
-  ];
-  const PALETTE_LABELS = [
-    ['rainbow', 'Arc-en-ciel (défaut)'],
-    ['theme', 'Couleur principale du thème HA'],
-  ];
+  // Valeurs proposées par l'éditeur (libellés traduits par tr())
+  const ACTION_KINDS = ['default', 'popup', 'navigate', 'toggle', 'more-info', 'all_off', 'none'];
+  const CENTER_KINDS = ['none', 'all_off', 'popup', 'navigate', 'scene'];
+  const NIGHT_MODES = ['off', 'sun', 'entity', 'always'];
+  // Options actives par défaut : l'éditeur n'écrit que « false »
+  const DEFAULT_TRUE = ['show_brightness', 'show_count', 'show_halo', 'haptics'];
+  // Valeur par défaut des listes : choisir le défaut retire la clé
+  const SELECT_DEFAULTS = { theme: 'auto', card_style: 'border_only', knob_theme: 'metal', open_animation: 'fan', palette: 'rainbow', night_mode: 'off' };
+  const RANGE_DEFAULTS = { zone_opacity: 80, night_level: 60 };
 
   // Type d'action d'un bouton, pour l'éditeur
   const actionKind = (b) => {
     const a = b && b.tap_action;
     if (a && typeof a === 'object') {
-      if (['navigate', 'toggle', 'more-info', 'none'].includes(a.action)) return a.action;
+      if (['navigate', 'toggle', 'more-info', 'all_off', 'none'].includes(a.action)) return a.action;
       return 'custom';
     }
     if (b && b.popup) return 'popup';
     return 'default';
+  };
+
+  // Type d'appui long du bouton central, pour l'éditeur
+  const centerKind = (a) => {
+    if (!a) return 'none';
+    if (typeof a === 'string') return ['none', 'all_off'].includes(a) ? a : 'custom';
+    switch (a.action) {
+      case 'none': return 'none';
+      case 'all_off': return 'all_off';
+      case 'navigate': return String(a.navigation_path || '').startsWith('#') ? 'popup' : 'navigate';
+      case 'perform-action':
+      case 'call-service':
+        return (a.perform_action || a.service) === 'scene.turn_on' && !a.data ? 'scene' : 'custom';
+      default: return 'custom';
+    }
   };
 
   // '#abc' / '#aabbcc' -> '#aabbcc' (pour le sélecteur de couleur natif), sinon null
@@ -2005,7 +2830,10 @@
       this._config = null;
       this._hass = null;
       this._sig = null;
+      this._lang = langOf(null);
     }
+
+    _t(key, vars) { return tr(this._lang, key, vars); }
 
     setConfig(config) {
       // Copie complète : aucune clé n'est perdue
@@ -2017,7 +2845,8 @@
       delete cfg.bottom_entities;
       if (!cfg.extra_buttons && cfg.extra_button) cfg.extra_buttons = [].concat(cfg.extra_button);
       delete cfg.extra_button;
-      cfg.items = [].concat(cfg.items || []).map((it) => normalizeItem(it)).filter(Boolean);
+      cfg.items = [].concat(cfg.items || []).map((it) => normalizeItem(it)).filter(Boolean).map((it) => (
+        Array.isArray(it.items) ? { ...it, items: it.items.map((k) => normalizeItem(k)).filter(Boolean) } : it));
       ['row_items', 'extra_buttons'].forEach((k) => {
         if (cfg[k] !== undefined) cfg[k] = [].concat(cfg[k] || []).map((it) => normalizeItem(it)).filter(Boolean);
       });
@@ -2029,19 +2858,22 @@
     set hass(hass) {
       this._hass = hass;
       if (!this._config) return;
-      if (!this.shadowRoot.querySelector('.editor-wrap')) { this._render(); return; }
+      if (!this.shadowRoot.querySelector('.editor-wrap') || langOf(hass) !== this._lang) { this._render(); return; }
       this.shadowRoot.querySelectorAll('ha-entity-picker, ha-icon-picker').forEach((el) => { el.hass = hass; });
     }
 
-    // Ce qui change la structure de l'éditeur (nombre d'entrées, champs affichés)
+    // Ce qui change la structure de l'éditeur (nombre d'entrées, champs affichés, langue)
     _signature() {
       const c = this._config;
       const rowDefault = c.row_style || 'tile';
       return JSON.stringify([
-        c.items.length,
+        langOf(this._hass),
+        c.items.map((it) => (Array.isArray(it.items) ? it.items.length : -1)),
         (c.row_items || []).map((b) => [b.style || rowDefault, actionKind(b)]),
         (c.extra_buttons || []).map((b) => [b.style === 'tile' ? 'tile' : 'metal', actionKind(b)]),
         CARD_STYLES_LIST.includes(c.card_style) ? c.card_style : 'border_only',
+        centerKind(c.center_hold_action),
+        NIGHT_MODES.includes(c.night_mode) ? c.night_mode : 'off',
       ]);
     }
 
@@ -2059,6 +2891,32 @@
       if (this._signature() !== this._sig) this._render();
     }
 
+    // ---------- Listes : 'items', 'row_items', 'extra_buttons' ou un sous-groupe 'items/3/items' ----------
+    _getList(scope) {
+      const parts = scope.split('/');
+      let list = this._config[parts[0]] || [];
+      for (let k = 1; k + 1 < parts.length; k += 2) {
+        const it = list[Number(parts[k])];
+        list = (it && it[parts[k + 1]]) || [];
+      }
+      return list;
+    }
+
+    _getItem(scope, idx) {
+      return scope === '__top' ? this._config : this._getList(scope)[idx];
+    }
+
+    _withList(scope, arr) {
+      const rec = (obj, p) => {
+        if (p.length === 1) return { ...obj, [p[0]]: arr };
+        const [key, idx, ...rest] = p;
+        const list = [...(obj[key] || [])];
+        list[Number(idx)] = rec(list[Number(idx)] || {}, rest);
+        return { ...obj, [key]: list };
+      };
+      return rec(this._config, scope.split('/'));
+    }
+
     // Modifie des clés : au niveau de la carte (scope '__top') ou d'une entrée de liste
     _patch(scope, idx, patch) {
       const apply = (obj) => {
@@ -2072,21 +2930,21 @@
       if (scope === '__top') {
         this._config = apply(this._config);
       } else {
-        const arr = [...(this._config[scope] || [])];
+        const arr = [...this._getList(scope)];
         if (!arr[idx]) return;
         arr[idx] = apply(arr[idx]);
-        this._config = { ...this._config, [scope]: arr };
+        this._config = this._withList(scope, arr);
       }
       this._afterChange();
     }
 
     _setList(scope, arr) {
-      this._config = { ...this._config, [scope]: arr };
+      this._config = this._withList(scope, arr);
       this._afterChange();
     }
 
     _setAction(scope, idx, kind) {
-      const arr = [...(this._config[scope] || [])];
+      const arr = [...this._getList(scope)];
       const it = { ...arr[idx] };
       const prev = it.popup || (it.tap_action && it.tap_action.navigation_path) || '';
       if (kind === 'custom') return;
@@ -2100,7 +2958,7 @@
     }
 
     _setActionValue(scope, idx, raw) {
-      const arr = [...(this._config[scope] || [])];
+      const arr = [...this._getList(scope)];
       const it = { ...arr[idx] };
       const v = raw.trim();
       const kind = actionKind(it);
@@ -2111,6 +2969,39 @@
       this._setList(scope, arr);
     }
 
+    _setCenterKind(kind) {
+      let a;
+      switch (kind) {
+        case 'none': a = undefined; break;
+        case 'all_off': a = { action: 'all_off' }; break;
+        case 'popup': a = { action: 'navigate', navigation_path: '#' }; break;
+        case 'navigate': a = { action: 'navigate', navigation_path: '' }; break;
+        case 'scene': a = { action: 'perform-action', perform_action: 'scene.turn_on' }; break;
+        default: return;
+      }
+      this._patch('__top', 0, { center_hold_action: a });
+    }
+
+    _setCenterValue(raw) {
+      const a = this._config.center_hold_action;
+      const kind = centerKind(a);
+      const v = String(raw || '').trim();
+      if (kind === 'popup') this._patch('__top', 0, { center_hold_action: { ...a, navigation_path: v ? (v.startsWith('#') ? v : `#${v}`) : '#' } });
+      else if (kind === 'navigate') this._patch('__top', 0, { center_hold_action: { ...a, navigation_path: v } });
+      else if (kind === 'scene') {
+        const { target, ...rest } = a;
+        this._patch('__top', 0, { center_hold_action: v ? { ...rest, target: { entity_id: v } } : rest });
+      }
+    }
+
+    _centerValue(a) {
+      const kind = centerKind(a);
+      if (kind === 'popup') return a.navigation_path === '#' ? '' : a.navigation_path || '';
+      if (kind === 'navigate') return a.navigation_path || '';
+      if (kind === 'scene') return (a.target && a.target.entity_id) || '';
+      return '';
+    }
+
     // ---------- Gabarits ----------
     _colorField(key, val, label, def, placeholder) {
       return `
@@ -2119,47 +3010,89 @@
           <div class="color-row">
             <input type="color" data-swatch="${key}" data-default="${def}" value="${toHex(val) || def}">
             <input type="text" data-field="${key}" value="${esc(val || '')}" placeholder="${esc(placeholder)}">
-            <button type="button" class="btn-clear" data-clear="${key}" title="Couleur par défaut">✕</button>
+            <button type="button" class="btn-clear" data-clear="${key}" title="${esc(this._t('clear'))}">✕</button>
           </div>
         </div>`;
     }
 
     _actionFields(b, defaultLabel) {
+      const t = (k, v) => this._t(k, v);
       const kind = actionKind(b);
-      const list = ACTIONS.map(([v, l]) => (v === 'default' ? [v, `${l} (${defaultLabel})`] : [v, l]));
-      if (kind === 'custom') list.push(['custom', 'Personnalisée (YAML)']);
+      const list = ACTION_KINDS.map((v) => [v, v === 'default' ? t('a_default', { d: defaultLabel }) : t(`a_${v}`)]);
+      if (kind === 'custom') list.push(['custom', t('a_custom')]);
       let valueField = '';
       if (kind === 'popup') {
-        valueField = `<div class="field"><label>Pop-up (hash Bubble Card)</label>
+        valueField = `<div class="field"><label>${esc(t('popup_hash'))}</label>
           <input type="text" data-field="action_value" value="${esc(b.popup === '#' ? '' : b.popup || '')}" placeholder="#tv-salon"></div>`;
       } else if (kind === 'navigate') {
-        valueField = `<div class="field"><label>Chemin</label>
-          <input type="text" data-field="action_value" value="${esc((b.tap_action && b.tap_action.navigation_path) || '')}" placeholder="/lovelace/salon ou /lovelace/salon#tv-salon"></div>`;
+        valueField = `<div class="field"><label>${esc(t('path'))}</label>
+          <input type="text" data-field="action_value" value="${esc((b.tap_action && b.tap_action.navigation_path) || '')}" placeholder="/lovelace/salon"></div>`;
       } else if (kind === 'custom') {
-        valueField = '<div class="hint" style="margin:0">Action définie en YAML : elle est conservée telle quelle.</div>';
+        valueField = `<div class="hint" style="margin:0">${esc(t('custom_hint'))}</div>`;
       }
       return `
         <div class="item-subgrid">
-          <div class="field"><label>Action à l'appui</label>
+          <div class="field"><label>${esc(t('tap_action'))}</label>
             <select data-field="action" ${kind === 'custom' ? 'disabled' : ''}>${opts(list, kind)}</select></div>
           ${valueField}
         </div>`;
     }
 
-    _itemHeader(title, scope, idx, len, canDelete) {
+    _itemHeader(title, idx, len, canDelete) {
       return `
         <div class="item-header">
-          <span>${title}</span>
+          <span>${esc(title)}</span>
           <div class="item-actions">
-            <button type="button" class="btn-mini" data-move="-1" title="Monter" ${idx === 0 ? 'disabled' : ''}>▲</button>
-            <button type="button" class="btn-mini" data-move="1" title="Descendre" ${idx === len - 1 ? 'disabled' : ''}>▼</button>
-            <button type="button" class="btn-del" data-del title="Supprimer" ${canDelete ? '' : 'disabled'}>Supprimer</button>
+            <button type="button" class="btn-mini" data-move="-1" title="${esc(this._t('up'))}" ${idx === 0 ? 'disabled' : ''}>▲</button>
+            <button type="button" class="btn-mini" data-move="1" title="${esc(this._t('down'))}" ${idx === len - 1 ? 'disabled' : ''}>▼</button>
+            <button type="button" class="btn-del" data-del title="${esc(this._t('delete'))}" ${canDelete ? '' : 'disabled'}>${esc(this._t('delete'))}</button>
           </div>
+        </div>`;
+    }
+
+    // Entrée du cercle (ou d'un groupe : nested)
+    _circleCard(it, scope, idx, len, nested) {
+      const t = (k, v) => this._t(k, v);
+      const hold = it.dimmer === false ? 'off' : (it.dimmer === true ? 'force' : 'auto');
+      let group = '';
+      if (!nested) {
+        const kids = Array.isArray(it.items) ? it.items : null;
+        group = `<label class="switch-label"><input type="checkbox" data-field="__group" ${kids ? 'checked' : ''}> ${esc(t('is_group'))}</label>`;
+        if (kids) {
+          const kscope = `${scope}/${idx}/items`;
+          group += `
+          <div class="group-box">
+            <div class="hint" style="margin:0 0 10px">${esc(t('group_hint'))}</div>
+            <div class="section-title">
+              <span>${esc(t('sub_items', { n: kids.length }))}</span>
+              <button type="button" class="btn" data-add="${kscope}" ${kids.length >= 10 ? 'disabled' : ''}>${esc(t('add'))}</button>
+            </div>
+            ${kids.map((k, j) => this._circleCard(k, kscope, j, kids.length, true)).join('')}
+          </div>`;
+        }
+      }
+      return `
+        <div class="item-card${nested ? ' nested' : ''}" data-list="${scope}" data-idx="${idx}">
+          ${this._itemHeader(nested ? t('sub_title', { n: idx + 1 }) : t('item_title', { n: idx + 1 }), idx, len, nested ? len > 1 : len > 2)}
+          <ha-entity-picker allow-custom-entity></ha-entity-picker>
+          <div class="item-subgrid">
+            <div class="field"><label>${esc(t('name_opt'))}</label>
+              <input type="text" data-field="name" placeholder="${esc(t('name_ph'))}" value="${esc(it.name || '')}"></div>
+            <div class="field"><label>${esc(t('icon_opt'))}</label><ha-icon-picker></ha-icon-picker></div>
+          </div>
+          <div class="color-grid">
+            ${this._colorField('color', it.color, t('color'), this._defaultHex(idx, len), t('color_auto'))}
+            <div class="field"><label>${esc(t('hold'))}</label>
+              <select data-field="dimmer">${opts([['auto', t('hold_auto')], ['force', t('hold_force')], ['off', t('hold_off')]], hold)}</select></div>
+          </div>
+          ${group}
         </div>`;
     }
 
     _render() {
       if (!this._config) return;
+      this._lang = langOf(this._hass);
+      const t = (k, v) => this._t(k, v);
       const c = this._config;
       this._sig = this._signature();
       const rows = c.row_items || [];
@@ -2168,41 +3101,34 @@
       const cardStyle = CARD_STYLES_LIST.includes(c.card_style) ? c.card_style : 'border_only';
       const cardHasBg = cardStyle === 'standard' || cardStyle === 'background_only';
       const cardHasBorder = cardStyle === 'standard' || cardStyle === 'border_only';
+      const cKind = centerKind(c.center_hold_action);
+      const nMode = NIGHT_MODES.includes(c.night_mode) ? c.night_mode : 'off';
 
-      const circleCards = c.items.map((it, idx) => `
-        <div class="item-card" data-list="items" data-idx="${idx}">
-          ${this._itemHeader(`Position cercle #${idx + 1}`, 'items', idx, c.items.length, c.items.length > 2)}
-          <ha-entity-picker allow-custom-entity></ha-entity-picker>
-          <div class="item-subgrid">
-            <div class="field"><label>Nom (optionnel)</label>
-              <input type="text" data-field="name" placeholder="Nom de l'entité" value="${esc(it.name || '')}"></div>
-            <div class="field"><label>Icône (optionnel)</label><ha-icon-picker></ha-icon-picker></div>
-          </div>
+      const circleCards = c.items.map((it, idx) => this._circleCard(it, 'items', idx, c.items.length, false)).join('');
+
+      const colorBlock = (it, style) => `
+          <div class="sub-title">${esc(t('colors'))}</div>
           <div class="color-grid">
-            ${this._colorField('color', it.color, 'Couleur', this._defaultHex(idx), 'Auto (arc-en-ciel)')}
-          </div>
-        </div>`).join('');
+            ${this._colorField('color', it.color, t('c_on'), '#a3be8c', '#a3be8c')}
+            ${this._colorField('off_color', it.off_color, t('c_off'), style === 'tile' ? '#bf616a' : '#888888', style === 'tile' ? '#bf616a' : t('theme_ph'))}
+            ${style === 'tile' ? this._colorField('background', it.background, t('c_bg'), '#434c5e', '#434c5e') : ''}
+          </div>`;
 
       const rowCards = rows.map((it, idx) => {
         const style = it.style || rowDefault;
         return `
         <div class="item-card" data-list="row_items" data-idx="${idx}">
-          ${this._itemHeader(`Bouton en ligne #${idx + 1}`, 'row_items', idx, rows.length, true)}
+          ${this._itemHeader(t('row_title', { n: idx + 1 }), idx, rows.length, true)}
           <ha-entity-picker allow-custom-entity></ha-entity-picker>
           <div class="item-subgrid-3">
-            <div class="field"><label>Nom / info-bulle</label>
-              <input type="text" data-field="name" placeholder="Nom auto" value="${esc(it.name || '')}"></div>
-            <div class="field"><label>Icône (optionnel)</label><ha-icon-picker></ha-icon-picker></div>
-            <div class="field"><label>Style</label>
-              <select data-field="style">${opts([['tile', 'Tuile'], ['metal', 'Métal']], style)}</select></div>
+            <div class="field"><label>${esc(t('name_tip'))}</label>
+              <input type="text" data-field="name" placeholder="${esc(t('name_auto'))}" value="${esc(it.name || '')}"></div>
+            <div class="field"><label>${esc(t('icon_opt'))}</label><ha-icon-picker></ha-icon-picker></div>
+            <div class="field"><label>${esc(t('style'))}</label>
+              <select data-field="style">${opts([['tile', t('st_tile')], ['metal', t('st_metal')]], style)}</select></div>
           </div>
-          ${this._actionFields(it, 'allumer / éteindre')}
-          <div class="sub-title">Couleurs</div>
-          <div class="color-grid">
-            ${this._colorField('color', it.color, 'Allumé', '#a3be8c', '#a3be8c')}
-            ${this._colorField('off_color', it.off_color, 'Éteint', style === 'tile' ? '#bf616a' : '#888888', style === 'tile' ? '#bf616a' : 'Thème')}
-            ${style === 'tile' ? this._colorField('background', it.background, 'Fond de la tuile', '#434c5e', '#434c5e') : ''}
-          </div>
+          ${this._actionFields(it, t('def_toggle'))}
+          ${colorBlock(it, style)}
         </div>`;
       }).join('');
 
@@ -2210,104 +3136,138 @@
         const style = it.style === 'tile' ? 'tile' : 'metal';
         return `
         <div class="item-card" data-list="extra_buttons" data-idx="${idx}">
-          ${this._itemHeader(`Bouton de coin #${idx + 1}`, 'extra_buttons', idx, extras.length, true)}
+          ${this._itemHeader(t('extra_title', { n: idx + 1 }), idx, extras.length, true)}
           <ha-entity-picker allow-custom-entity></ha-entity-picker>
-          <div class="hint" style="margin:0">L'entité sert au voyant (allumé / éteint) et à la fenêtre d'infos ; elle est facultative.</div>
+          <div class="hint" style="margin:0">${esc(t('extra_entity_hint'))}</div>
           <div class="item-subgrid">
-            <div class="field"><label>Nom / info-bulle</label>
-              <input type="text" data-field="name" placeholder="Nom auto" value="${esc(it.name || '')}"></div>
-            <div class="field"><label>Icône</label><ha-icon-picker></ha-icon-picker></div>
-            <div class="field"><label>Coin</label>
-              <select data-field="position">${opts(POS_LABELS, POSITIONS.includes(it.position) ? it.position : '')}</select></div>
-            <div class="field"><label>Style</label>
-              <select data-field="style">${opts([['metal', 'Métal'], ['tile', 'Tuile']], style)}</select></div>
+            <div class="field"><label>${esc(t('name_tip'))}</label>
+              <input type="text" data-field="name" placeholder="${esc(t('name_auto'))}" value="${esc(it.name || '')}"></div>
+            <div class="field"><label>${esc(t('icon'))}</label><ha-icon-picker></ha-icon-picker></div>
+            <div class="field"><label>${esc(t('corner'))}</label>
+              <select data-field="position">${opts([['', t('pos_auto')], ...POSITIONS.map((p) => [p, t(`pos_${p}`)])], POSITIONS.includes(it.position) ? it.position : '')}</select></div>
+            <div class="field"><label>${esc(t('style'))}</label>
+              <select data-field="style">${opts([['metal', t('st_metal')], ['tile', t('st_tile')]], style)}</select></div>
           </div>
-          ${this._actionFields(it, 'fenêtre d\'infos')}
-          <div class="sub-title">Couleurs</div>
-          <div class="color-grid">
-            ${this._colorField('color', it.color, 'Allumé', '#a3be8c', '#a3be8c')}
-            ${this._colorField('off_color', it.off_color, 'Éteint', style === 'tile' ? '#bf616a' : '#888888', style === 'tile' ? '#bf616a' : 'Thème')}
-            ${style === 'tile' ? this._colorField('background', it.background, 'Fond de la tuile', '#434c5e', '#434c5e') : ''}
-          </div>
+          ${this._actionFields(it, t('def_more'))}
+          ${colorBlock(it, style)}
         </div>`;
       }).join('');
+
+      let centerValue = '';
+      if (cKind === 'popup') {
+        centerValue = `<div class="field"><label>${esc(t('popup_hash'))}</label>
+          <input type="text" data-field="center_value" value="${esc(this._centerValue(c.center_hold_action))}" placeholder="#scenes"></div>`;
+      } else if (cKind === 'navigate') {
+        centerValue = `<div class="field"><label>${esc(t('path'))}</label>
+          <input type="text" data-field="center_value" value="${esc(this._centerValue(c.center_hold_action))}" placeholder="/lovelace/lumieres"></div>`;
+      } else if (cKind === 'scene') {
+        centerValue = `<div class="field"><label>${esc(t('scene'))}</label><ha-entity-picker data-key="center_scene" allow-custom-entity></ha-entity-picker></div>`;
+      } else if (cKind === 'custom') {
+        centerValue = `<div class="hint" style="margin:0">${esc(t('custom_hint'))}</div>`;
+      }
+      const centerList = CENTER_KINDS.map((k) => [k, t(`c_${k}`)]);
+      if (cKind === 'custom') centerList.push(['custom', t('c_custom')]);
+
+      const sw = (key, checked, label) => `<label class="switch-label"><input type="checkbox" data-field="${key}" ${checked ? 'checked' : ''}> ${esc(label)}</label>`;
 
       this.shadowRoot.innerHTML = `
         <style>${EDITOR_STYLES}</style>
         <div class="editor-wrap">
           <div class="section" data-list="__top" data-idx="0">
-            <div class="section-title">Paramètres généraux</div>
+            <div class="section-title">${esc(t('sec_general'))}</div>
             <div class="grid-2">
-              <div class="field"><label>Nom de la carte</label>
-                <input type="text" data-field="name" value="${esc(c.name || '')}" placeholder="Éclairage"></div>
-              <div class="field"><label>Réduction automatique (secondes, 0 = jamais)</label>
+              <div class="field"><label>${esc(t('card_name'))}</label>
+                <input type="text" data-field="name" value="${esc(c.name || '')}" placeholder="${esc(t('card_name_ph'))}"></div>
+              <div class="field"><label>${esc(t('auto_close'))}</label>
                 <input type="number" data-field="auto_close" min="0" max="3600" value="${esc(c.auto_close ?? '')}" placeholder="10"></div>
-              <div class="field"><label>Taille du bouton central (px)</label>
-                <input type="number" data-field="size" min="60" max="300" value="${esc(c.size || '')}" placeholder="Auto"></div>
-              <div class="field"><label>Thème</label>
-                <select data-field="theme">${opts([['auto', 'Auto (thème HA)'], ['dark', 'Sombre'], ['light', 'Clair']], c.theme || 'auto')}</select></div>
+              <div class="field"><label>${esc(t('size'))}</label>
+                <input type="number" data-field="size" min="60" max="300" value="${esc(c.size || '')}" placeholder="${esc(t('auto'))}"></div>
+              <div class="field"><label>${esc(t('theme'))}</label>
+                <select data-field="theme">${opts([['auto', t('theme_auto')], ['dark', t('theme_dark')], ['light', t('theme_light')]], c.theme || 'auto')}</select></div>
             </div>
             <div class="switches">
-              <label class="switch-label"><input type="checkbox" data-field="show_label" ${c.show_label ? 'checked' : ''}>
-                Afficher le libellé sous le cercle</label>
-              <label class="switch-label"><input type="checkbox" data-field="close_on_select" ${c.close_on_select ? 'checked' : ''}>
-                Réduire immédiatement après une sélection</label>
-              <label class="switch-label"><input type="checkbox" data-field="show_brightness" ${c.show_brightness !== false ? 'checked' : ''}>
-                Afficher le % sous les lumières variables allumées</label>
+              ${sw('show_label', !!c.show_label, t('show_label'))}
+              ${sw('close_on_select', !!c.close_on_select, t('close_on_select'))}
+              ${sw('show_brightness', c.show_brightness !== false, t('show_brightness'))}
+              ${sw('show_count', c.show_count !== false, t('show_count'))}
+              ${sw('show_halo', c.show_halo !== false, t('show_halo'))}
+              ${sw('haptics', c.haptics !== false, t('haptics'))}
             </div>
           </div>
 
           <div class="section" data-list="__top" data-idx="0">
-            <div class="section-title">Style du bouton</div>
+            <div class="section-title">${esc(t('sec_knob'))}</div>
             <div class="grid-2">
-              <div class="field"><label>Thème du bouton</label>
-                <select data-field="knob_theme">${opts(SKIN_LABELS, SKINS.includes(c.knob_theme) ? c.knob_theme : 'metal')}</select></div>
-              <div class="field"><label>Animation d'ouverture</label>
-                <select data-field="open_animation">${opts(ANIM_LABELS, ANIMS.includes(c.open_animation) ? c.open_animation : 'fan')}</select></div>
-              <div class="field"><label>Couleurs des entrées sans couleur choisie</label>
-                <select data-field="palette">${opts(PALETTE_LABELS, c.palette === 'theme' ? 'theme' : 'rainbow')}</select></div>
-              <div class="field"><label>Remplissage de la zone survolée : <span data-range-label="zone_opacity">${esc(c.zone_opacity ?? 80)}</span> %</label>
+              <div class="field"><label>${esc(t('knob_theme'))}</label>
+                <select data-field="knob_theme">${opts(SKINS.map((k) => [k, t(`skin_${k}`)]), SKINS.includes(c.knob_theme) ? c.knob_theme : 'metal')}</select></div>
+              <div class="field"><label>${esc(t('open_animation'))}</label>
+                <select data-field="open_animation">${opts(ANIMS.map((k) => [k, t(`anim_${k}`)]), ANIMS.includes(c.open_animation) ? c.open_animation : 'fan')}</select></div>
+              <div class="field"><label>${esc(t('palette'))}</label>
+                <select data-field="palette">${opts([['rainbow', t('pal_rainbow')], ['theme', t('pal_theme')]], c.palette === 'theme' ? 'theme' : 'rainbow')}</select></div>
+              <div class="field"><label>${esc(t('zone_opacity'))} <span data-range-label="zone_opacity">${esc(c.zone_opacity ?? 80)}</span> %</label>
                 <input type="range" data-field="zone_opacity" min="0" max="100" step="5" value="${esc(c.zone_opacity ?? 80)}"></div>
             </div>
-            <div class="hint" style="margin:10px 0 0">« Thème Home Assistant » reprend les couleurs du thème actif et change avec lui.
-              Si « réduire les animations » est activé sur l'appareil, l'ouverture se fait en fondu.</div>
+            <div class="hint" style="margin:10px 0 0">${esc(t('knob_hint'))}</div>
           </div>
 
           <div class="section" data-list="__top" data-idx="0">
-            <div class="section-title">Apparence de la carte</div>
+            <div class="section-title">${esc(t('sec_center'))}</div>
             <div class="grid-2">
-              <div class="field"><label>Fond et contour</label>
-                <select data-field="card_style">${opts(CARD_STYLE_LABELS, cardStyle)}</select></div>
-              ${cardHasBg ? this._colorField('card_background', c.card_background, 'Couleur du fond', '#2b303d', 'Thème HA') : ''}
-              ${cardHasBorder ? this._colorField('card_border_color', c.card_border_color, 'Couleur du contour', '#5e6472', 'Thème HA') : ''}
+              <div class="field"><label>${esc(t('center_hold'))}</label>
+                <select data-field="center_kind" ${cKind === 'custom' ? 'disabled' : ''}>${opts(centerList, cKind)}</select></div>
+              ${centerValue}
+            </div>
+            <div class="hint" style="margin:10px 0 0">${esc(t('center_hint'))}</div>
+          </div>
+
+          <div class="section" data-list="__top" data-idx="0">
+            <div class="section-title">${esc(t('sec_night'))}</div>
+            <div class="grid-2">
+              <div class="field"><label>${esc(t('night_mode'))}</label>
+                <select data-field="night_mode">${opts(NIGHT_MODES.map((k) => [k, t(`n_${k}`)]), nMode)}</select></div>
+              ${nMode === 'entity' ? `<div class="field"><label>${esc(t('night_entity'))}</label><ha-entity-picker data-key="night_entity" allow-custom-entity></ha-entity-picker></div>` : ''}
+              ${nMode !== 'off' ? `<div class="field"><label>${esc(t('night_level'))} <span data-range-label="night_level">${esc(c.night_level ?? 60)}</span> %</label>
+                <input type="range" data-field="night_level" min="20" max="100" step="5" value="${esc(c.night_level ?? 60)}"></div>` : ''}
+            </div>
+            <div class="hint" style="margin:10px 0 0">${esc(t('night_hint'))}</div>
+          </div>
+
+          <div class="section" data-list="__top" data-idx="0">
+            <div class="section-title">${esc(t('sec_card'))}</div>
+            <div class="grid-2">
+              <div class="field"><label>${esc(t('card_style'))}</label>
+                <select data-field="card_style">${opts(CARD_STYLES_LIST.map((k) => [k, t(`cs_${k}`)]), cardStyle)}</select></div>
+              ${cardHasBg ? this._colorField('card_background', c.card_background, t('card_background'), '#2b303d', t('theme_ha')) : ''}
+              ${cardHasBorder ? this._colorField('card_border_color', c.card_border_color, t('card_border_color'), '#5e6472', t('theme_ha')) : ''}
             </div>
           </div>
 
           <div class="section">
             <div class="section-title">
-              <span>Entités dans le cercle (${c.items.length}/10)</span>
-              <button type="button" class="btn" data-add="items" ${c.items.length >= 10 ? 'disabled' : ''}>+ Ajouter</button>
+              <span>${esc(t('sec_items', { n: c.items.length }))}</span>
+              <button type="button" class="btn" data-add="items" ${c.items.length >= 10 ? 'disabled' : ''}>${esc(t('add'))}</button>
             </div>
-            <div class="hint">Entre 2 et 10 entités autour du cadran. Couleur vide : arc-en-ciel selon la position.</div>
+            <div class="hint">${esc(t('items_hint'))}</div>
+            <div class="hint">${esc(t('hold_hint'))}</div>
             ${circleCards}
           </div>
 
           <div class="section">
             <div class="section-title">
-              <span>Boutons dans les coins (${extras.length}/4)</span>
-              <button type="button" class="btn" data-add="extra_buttons" ${extras.length >= 4 ? 'disabled' : ''}>+ Ajouter</button>
+              <span>${esc(t('sec_extra', { n: extras.length }))}</span>
+              <button type="button" class="btn" data-add="extra_buttons" ${extras.length >= 4 ? 'disabled' : ''}>${esc(t('add'))}</button>
             </div>
-            <div class="hint">Accès direct, même cadran fermé : pop-up Bubble Card, vue, appareil…</div>
-            ${extraCards || '<div class="hint">Aucun bouton de coin.</div>'}
+            <div class="hint">${esc(t('extra_hint'))}</div>
+            ${extraCards || `<div class="hint">${esc(t('no_extra'))}</div>`}
           </div>
 
           <div class="section">
             <div class="section-title">
-              <span>Entités en ligne en dessous (${rows.length})</span>
-              <button type="button" class="btn" data-add="row_items">+ Ajouter</button>
+              <span>${esc(t('sec_rows', { n: rows.length }))}</span>
+              <button type="button" class="btn" data-add="row_items">${esc(t('add'))}</button>
             </div>
-            <div class="hint">Boutons d'accès rapide alignés sous le cercle.</div>
-            ${rowCards || '<div class="hint">Aucune entité en ligne.</div>'}
+            <div class="hint">${esc(t('rows_hint'))}</div>
+            ${rowCards || `<div class="hint">${esc(t('no_rows'))}</div>`}
           </div>
         </div>`;
 
@@ -2315,10 +3275,9 @@
       this._syncValues();
     }
 
-    _defaultHex(i) {
-      // Couleur arc-en-ciel par défaut d'une entrée du cercle, en hex pour le sélecteur natif
-      const n = this._config.items.length || 1;
-      const h = (((360 / n) * i - 90) % 360 + 360) % 360;
+    _defaultHex(i, n) {
+      // Couleur arc-en-ciel par défaut d'une entrée, en hex pour le sélecteur natif
+      const h = (((360 / (n || 1)) * i - 90) % 360 + 360) % 360;
       const s = 1, l = 0.72;
       const k = (m) => (m + h / 30) % 12;
       const a = s * Math.min(l, 1 - l);
@@ -2331,8 +3290,8 @@
 
       root.querySelectorAll('[data-add]').forEach((btn) => btn.addEventListener('click', () => {
         const scope = btn.getAttribute('data-add');
-        const arr = [...(this._config[scope] || [])];
-        if (scope === 'items' && arr.length >= 10) return;
+        const arr = [...this._getList(scope)];
+        if ((scope === 'items' || scope.includes('/')) && arr.length >= 10) return;
         if (scope === 'extra_buttons' && arr.length >= POSITIONS.length) return;
         arr.push(scope === 'extra_buttons' ? { icon: 'mdi:television' } : {});
         this._setList(scope, arr);
@@ -2343,32 +3302,46 @@
         const idx = Number(card.getAttribute('data-idx'));
         const isTop = scope === '__top';
 
-        // Les cartes d'entrée ne doivent pas capter les champs des sections imbriquées
+        // Les cartes d'entrée ne doivent pas capter les champs des cartes imbriquées
         const own = (sel) => [...card.querySelectorAll(sel)].filter((el) => el.closest('[data-list]') === card);
 
         own('ha-entity-picker').forEach((ep) => {
+          const key = ep.getAttribute('data-key') || 'entity';
           ep.hass = this._hass;
-          ep.label = 'Entité';
+          if (key === 'entity') ep.label = this._t('entity');
+          if (key === 'center_scene') ep.includeDomains = ['scene'];
           ep.addEventListener('value-changed', (ev) => {
             ev.stopPropagation();
-            this._patch(scope, idx, { entity: ev.detail.value || undefined });
+            const v = ev.detail.value || undefined;
+            if (key === 'center_scene') { this._setCenterValue(v || ''); return; }
+            const cur = this._getItem(scope, idx);
+            if (cur && cur[key] === v) return;
+            this._patch(scope, idx, { [key]: v });
           });
         });
         own('ha-icon-picker').forEach((ip) => {
           ip.hass = this._hass;
           ip.addEventListener('value-changed', (ev) => {
             ev.stopPropagation();
-            this._patch(scope, idx, { icon: ev.detail.value || undefined });
+            const v = ev.detail.value || undefined;
+            const cur = this._getItem(scope, idx);
+            if (cur && cur.icon === v) return;
+            this._patch(scope, idx, { icon: v });
           });
         });
 
         own('input[data-field]').forEach((inp) => {
           const key = inp.getAttribute('data-field');
           if (inp.type === 'checkbox') {
-            // show_brightness est actif par défaut : on n'écrit que « false »
-            const onTrue = key === 'show_brightness' ? undefined : true;
-            const onFalse = key === 'show_brightness' ? false : undefined;
-            inp.addEventListener('change', () => this._patch(scope, idx, { [key]: inp.checked ? onTrue : onFalse }));
+            if (key === '__group') {
+              inp.addEventListener('change', () => this._patch(scope, idx, { items: inp.checked ? [{}, {}] : undefined }));
+              return;
+            }
+            // Options actives par défaut : on n'écrit que « false »
+            const defTrue = DEFAULT_TRUE.includes(key);
+            inp.addEventListener('change', () => this._patch(scope, idx, {
+              [key]: inp.checked ? (defTrue ? undefined : true) : (defTrue ? false : undefined),
+            }));
             return;
           }
           if (inp.type === 'range') {
@@ -2377,23 +3350,39 @@
             // valeur enregistrée au relâchement du curseur (évite de reconstruire la carte en continu)
             inp.addEventListener('change', () => {
               const n = Number(inp.value);
-              this._patch(scope, idx, { [key]: n === 80 ? undefined : n });
+              this._patch(scope, idx, { [key]: n === RANGE_DEFAULTS[key] ? undefined : n });
             });
             return;
           }
-          inp.addEventListener('input', () => {
+          // Texte et nombres : enregistrés 250 ms après la dernière frappe (ou en quittant le champ),
+          // pour ne pas reconstruire l'aperçu de la carte à chaque touche
+          let timer = null;
+          const commit = () => {
+            clearTimeout(timer);
+            timer = null;
             if (key === 'action_value') { this._setActionValue(scope, idx, inp.value); return; }
+            if (key === 'center_value') { this._setCenterValue(inp.value); return; }
+            const cur = this._getItem(scope, idx);
+            if (!cur) return;
+            let v;
             if (inp.type === 'number') {
               const n = inp.value === '' ? undefined : Number(inp.value);
-              this._patch(scope, idx, { [key]: Number.isFinite(n) && n >= 0 ? n : undefined });
-              return;
+              v = Number.isFinite(n) && n >= 0 ? n : undefined;
+            } else {
+              const isColor = !!own(`[data-swatch="${key}"]`)[0];
+              v = (isColor ? inp.value.trim() : inp.value) || undefined;
             }
-            const isColor = !!card.querySelector(`[data-swatch="${key}"]`);
-            const v = isColor ? inp.value.trim() : inp.value;
-            this._patch(scope, idx, { [key]: v || undefined });
+            if (cur[key] === v) return;
+            this._patch(scope, idx, { [key]: v });
+          };
+          inp.addEventListener('input', () => {
             const sw = own(`[data-swatch="${key}"]`)[0];
-            if (sw && toHex(v)) sw.value = toHex(v);
+            const hex = toHex(inp.value);
+            if (sw && hex) sw.value = hex;
+            clearTimeout(timer);
+            timer = setTimeout(commit, 250);
           });
+          inp.addEventListener('change', commit);
         });
 
         own('input[type="color"][data-swatch]').forEach((sw) => {
@@ -2418,26 +3407,25 @@
           const key = sel.getAttribute('data-field');
           const v = sel.value;
           if (key === 'action') this._setAction(scope, idx, v);
-          else if (key === 'theme') this._patch(scope, idx, { theme: v === 'auto' ? undefined : v });
-          else if (key === 'card_style') this._patch(scope, idx, { card_style: v === 'border_only' ? undefined : v });
-          else if (key === 'knob_theme') this._patch(scope, idx, { knob_theme: v === 'metal' ? undefined : v });
-          else if (key === 'open_animation') this._patch(scope, idx, { open_animation: v === 'fan' ? undefined : v });
-          else if (key === 'palette') this._patch(scope, idx, { palette: v === 'rainbow' ? undefined : v });
+          else if (key === 'center_kind') this._setCenterKind(v);
+          else if (key === 'dimmer') this._patch(scope, idx, { dimmer: v === 'force' ? true : (v === 'off' ? false : undefined) });
+          else if (key in SELECT_DEFAULTS) this._patch(scope, idx, { [key]: v === SELECT_DEFAULTS[key] ? undefined : v });
           else this._patch(scope, idx, { [key]: v || undefined });
         }));
 
         if (!isTop) {
           own('[data-move]').forEach((btn) => btn.addEventListener('click', () => {
             const to = idx + Number(btn.getAttribute('data-move'));
-            const arr = [...(this._config[scope] || [])];
+            const arr = [...this._getList(scope)];
             if (to < 0 || to >= arr.length) return;
             [arr[idx], arr[to]] = [arr[to], arr[idx]];
             this._setList(scope, arr);
             this._render();   // l'ordre a changé : on redessine
           }));
           own('[data-del]').forEach((btn) => btn.addEventListener('click', () => {
-            const arr = [...(this._config[scope] || [])];
+            const arr = [...this._getList(scope)];
             if (scope === 'items' && arr.length <= 2) return;
+            if (scope.includes('/') && arr.length <= 1) return;
             arr.splice(idx, 1);
             this._setList(scope, arr);
           }));
@@ -2453,17 +3441,25 @@
       root.querySelectorAll('[data-list]').forEach((card) => {
         const scope = card.getAttribute('data-list');
         const idx = Number(card.getAttribute('data-idx'));
-        const it = scope === '__top' ? this._config : (this._config[scope] || [])[idx];
+        const it = this._getItem(scope, idx);
         if (!it) return;
         const own = (sel) => [...card.querySelectorAll(sel)].filter((el) => el.closest('[data-list]') === card);
-        own('ha-entity-picker').forEach((ep) => { if (ep.value !== (it.entity || '')) ep.value = it.entity || ''; });
+        own('ha-entity-picker').forEach((ep) => {
+          const key = ep.getAttribute('data-key') || 'entity';
+          const v = key === 'center_scene' ? this._centerValue(it.center_hold_action) : (it[key] || '');
+          if (ep.value !== v) ep.value = v;
+        });
         own('ha-icon-picker').forEach((ip) => { if (ip.value !== (it.icon || '')) ip.value = it.icon || ''; });
         own('input[data-field]').forEach((inp) => {
           if (inp === focused) return;
           const key = inp.getAttribute('data-field');
-          if (inp.type === 'checkbox') { inp.checked = key === 'show_brightness' ? it[key] !== false : !!it[key]; return; }
+          if (inp.type === 'checkbox') {
+            if (key === '__group') inp.checked = Array.isArray(it.items);
+            else inp.checked = DEFAULT_TRUE.includes(key) ? it[key] !== false : !!it[key];
+            return;
+          }
           if (inp.type === 'range') {
-            const v = String(it[key] ?? 80);
+            const v = String(it[key] ?? RANGE_DEFAULTS[key]);
             if (inp.value !== v) inp.value = v;
             const lab = own(`[data-range-label="${key}"]`)[0];
             if (lab) lab.textContent = v;
@@ -2472,10 +3468,23 @@
           let v;
           if (key === 'action_value') {
             v = actionKind(it) === 'popup' ? (it.popup === '#' ? '' : it.popup || '') : ((it.tap_action && it.tap_action.navigation_path) || '');
+          } else if (key === 'center_value') {
+            v = this._centerValue(it.center_hold_action);
           } else v = it[key] ?? '';
           if (inp.value !== String(v)) inp.value = String(v);
           const sw = own(`[data-swatch="${key}"]`)[0];
           if (sw) sw.value = toHex(v) || sw.getAttribute('data-default');
+        });
+        // Listes simples (modifiées éventuellement dans l'éditeur YAML)
+        own('select[data-field]').forEach((sel) => {
+          if (sel === focused) return;
+          const key = sel.getAttribute('data-field');
+          let v;
+          if (key === 'dimmer') v = it.dimmer === false ? 'off' : (it.dimmer === true ? 'force' : 'auto');
+          else if (key === 'position') v = POSITIONS.includes(it.position) ? it.position : '';
+          else if (key in SELECT_DEFAULTS && key !== 'card_style' && key !== 'night_mode') v = it[key] || SELECT_DEFAULTS[key];
+          else return;
+          if ([...sel.options].some((o) => o.value === v) && sel.value !== v) sel.value = v;
         });
       });
     }
@@ -2489,7 +3498,7 @@
     type: TAG,
     name: 'Radial Selector Card',
     preview: true,
-    description: 'Sélecteur rotatif : entités en cercle, boutons de coin, ligne de boutons, variateur et réduction temporisée.',
+    description: tr(langOf(null), 'card_desc'),
     documentationURL: 'https://github.com/benshoesweb/radial-selector-card',
   });
 })();

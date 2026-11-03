@@ -1,0 +1,16 @@
+{
+  "name": "radial-selector-card",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Rotary selector card for Home Assistant dashboards",
+  "license": "MIT",
+  "repository": "github:benshoesweb/radial-selector-card",
+  "scripts": {
+    "check": "node --check dist/radial-selector-card.js",
+    "test": "node tests/run.js"
+  },
+  "devDependencies": {
+    "@mdi/js": "^7.4.47",
+    "playwright": "1.63.0"
+  }
+}

@@ -1,0 +1,32 @@
+# Journal des versions / Changelog
+
+Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
+
+## [1.1.0] — 2026-11-03
+
+### Ajouté
+- **Molette pour d'autres appareils** : l'appui long règle le volume d'un `media_player`, la position d'un volet (`cover`), la consigne d'un thermostat (`climate`, au pas de l'appareil), la vitesse d'un ventilateur (`fan`) et la valeur d'un `input_number` / `number`. La valeur s'affiche sous l'icône (35 %, 20,5°, 12 dB…).
+- **Lumières couleur** : appuis longs successifs (moins de 3 s d'écart) = luminosité → blanc (température en kelvins) → couleur (teinte). Arc dégradé, valeur et nom du mode au centre.
+- **Groupes** : une entrée avec ses propres `items` ouvre un sous-cercle ; appui sur le bouton central (ou Échap) = retour. Sans entité, l'appui long sur le groupe allume ou éteint tout le groupe ; « 2/3 » sous l'icône.
+- **Appui long sur le bouton central** (`center_hold_action`) : tout éteindre (`all_off`), pop-up, vue, scène ou action YAML, avec une onde de confirmation.
+- **Bouton fermé** : nombre d'entités allumées (`show_count`) et halo coloré à la place de chaque entrée allumée (`show_halo`).
+- **Retour haptique** au doigt (`haptics`) : application Home Assistant (respecte le réglage « Vibration » du profil) ou vibreur du navigateur.
+- **Mode nuit** (`night_mode`: `sun`, `entity`, `always`, avec `night_entity` et `night_level`) : carte atténuée la nuit.
+- Action **`all_off`** disponible aussi pour les boutons de coin et la ligne de boutons.
+- **Anglais** : carte et éditeur suivent la langue de Home Assistant (français ou anglais).
+- **Tests automatiques** (170 vérifications dans Chrome) lancés par GitHub Actions à chaque modification.
+
+### Amélioré
+- **Éditeur plus rapide** : les champs texte sont enregistrés 250 ms après la dernière frappe (ou en quittant le champ) ; la carte ne se reconstruit plus si la configuration n'a pas changé.
+- Éditeur : sections « Bouton central » et « Mode nuit », réglage de l'appui long par entrée, édition des groupes.
+- Clavier : les flèches parcourent les entrées sans rien activer, Entrée / Espace activent.
+
+### Corrigé
+- Clavier : Espace sur l'entrée déjà sélectionnée ne faisait rien, et les flèches activaient chaque entrée au passage.
+
+## [1.0.0] — 2026-11-03
+
+Première version publique : cercle de 2 à 10 entrées, zones tactiles, variateur (appui long, molette), pourcentage sous les lumières, boutons de coin, ligne de boutons, 7 thèmes, 7 animations d'ouverture, apparence de la carte, éditeur visuel complet, écran tactile, souris et clavier, réduction automatique.
+
+[1.1.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.1.0
+[1.0.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.0.0
