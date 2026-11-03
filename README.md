@@ -25,7 +25,7 @@ Sélecteur rotatif pour les tableaux de bord Home Assistant : vos lumières et a
 
 ## Installation
 
-### Marketplace (Home Assistant 2026.11 et plus) ou HACS
+### Marketplace (Home Assistant 2026.10 et plus) ou HACS
 
 Cliquez sur le bouton **Ouvrir dans Home Assistant** ci-dessus, ou ajoutez ce dépôt comme dépôt personnalisé, catégorie **Dashboard** :
 `https://github.com/benshoesweb/radial-selector-card`
