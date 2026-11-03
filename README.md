@@ -2,10 +2,10 @@
 
 Sélecteur rotatif pour les tableaux de bord Home Assistant : vos lumières et appareils autour d'un bouton à tourner, avec variateur, zones tactiles, boutons de coin, thèmes et animations.
 
-[![Ouvrir dans Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=__OWNER__&repository=radial-selector-card&category=plugin)
-[![Validate](https://github.com/__OWNER__/radial-selector-card/actions/workflows/validate.yml/badge.svg)](https://github.com/__OWNER__/radial-selector-card/actions/workflows/validate.yml)
+[![Ouvrir dans Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=benshoesweb&repository=radial-selector-card&category=plugin)
+[![Validate](https://github.com/benshoesweb/radial-selector-card/actions/workflows/validate.yml/badge.svg)](https://github.com/benshoesweb/radial-selector-card/actions/workflows/validate.yml)
 
-![Thèmes](https://raw.githubusercontent.com/__OWNER__/radial-selector-card/main/images/themes-sombre.png)
+![Thèmes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/themes-sombre.png)
 
 ## Fonctionnalités
 
@@ -19,22 +19,22 @@ Sélecteur rotatif pour les tableaux de bord Home Assistant : vos lumières et a
 - **Éditeur visuel complet**, qui conserve la disposition (`grid_options`) et la visibilité de la carte.
 - Écran tactile, souris et clavier ; réduction automatique du cercle.
 
-![Zones tactiles](https://raw.githubusercontent.com/__OWNER__/radial-selector-card/main/images/zones.png)
-![Pourcentage des lumières](https://raw.githubusercontent.com/__OWNER__/radial-selector-card/main/images/pourcentage.png)
-![Animations](https://raw.githubusercontent.com/__OWNER__/radial-selector-card/main/images/animations.gif)
+![Zones tactiles](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/zones.png)
+![Pourcentage des lumières](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/pourcentage.png)
+![Animations](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/animations.gif)
 
 ## Installation
 
 ### Marketplace (Home Assistant 2026.11 et plus) ou HACS
 
 Cliquez sur le bouton **Ouvrir dans Home Assistant** ci-dessus, ou ajoutez ce dépôt comme dépôt personnalisé, catégorie **Dashboard** :
-`https://github.com/__OWNER__/radial-selector-card`
+`https://github.com/benshoesweb/radial-selector-card`
 
 La ressource du tableau de bord est ajoutée automatiquement.
 
 ### Manuelle
 
-1. Téléchargez `radial-selector-card.js` depuis la [dernière release](https://github.com/__OWNER__/radial-selector-card/releases/latest).
+1. Téléchargez `radial-selector-card.js` depuis la [dernière release](https://github.com/benshoesweb/radial-selector-card/releases/latest).
 2. Copiez-le dans `/config/www/`.
 3. **Paramètres › Tableaux de bord › ⋮ › Ressources** : ajoutez `/local/radial-selector-card.js` (module JavaScript).
 
@@ -85,7 +85,7 @@ extra_buttons:
 | `size` | diamètre du bouton central en px | auto |
 | `show_label`, `close_on_select` | `true` / `false` | `false` |
 
-![Éditeur](https://raw.githubusercontent.com/__OWNER__/radial-selector-card/main/images/editeur.png)
+![Éditeur](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/editeur.png)
 
 ## Publier une nouvelle version
 
