@@ -27,6 +27,6 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: node --check
         run: node --check dist/radial-selector-card.js
