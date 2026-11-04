@@ -18,9 +18,11 @@ module.exports = async (browser, h) => {
     const read = () => page.evaluate(() => {
       const s = window.sr('a');
       const sel = s.querySelector('.selector');
+      const v = getComputedStyle(s.querySelector('.knob'), '::after');
       return {
         count: sel.classList.contains('count-on'), text: s.querySelector('.badge').textContent,
         badgeOp: Number(getComputedStyle(s.querySelector('.badge')).opacity),
+        voyant: v.content, vw: parseFloat(v.width), vh: parseFloat(v.height), vcolor: v.color,
         halo: sel.classList.contains('halo-on'), haloOp: Number(getComputedStyle(s.querySelector('.halo')).opacity),
         grad: s.querySelector('.halo').style.getPropertyValue('--rsc-halo'),
       };
@@ -28,20 +30,38 @@ module.exports = async (browser, h) => {
     await page.evaluate((items) => window.mk('a', { auto_close: 0 }, items), ITEMS);
     await page.waitForTimeout(800);
     const r = await read();
-    check('5 entités allumées (lumières, prise, ampli, volet) affichées', r.count && r.text === '5' && r.badgeOp > 0.99, r);
+    check('5 entités allumées (lumières, prise, ampli, volet) : nombre dans le voyant élargi', r.count && r.voyant === '"5"' && r.vw >= 16 && r.vh >= 16 && r.vcolor !== 'rgba(0, 0, 0, 0)', r);
+    check('… sans l\'ancienne pastille dans le coin', r.badgeOp < 0.01, r);
     check('halo visible', r.halo && r.haloOp > 0.99, r);
     check('halo : arc de chaque entrée allumée, à sa couleur', (r.grad.match(/transparent \d/g) || []).length === 12 && r.grad.includes('#ff9800') && !r.grad.includes('hsl(-30deg'), r.grad);
     await page.evaluate(() => document.getElementById('a')._toggle());
     await page.waitForTimeout(600);
     const o = await read();
-    check('cercle ouvert : nombre et halo masqués', o.badgeOp < 0.01 && o.haloOp < 0.01, o);
+    check('cercle ouvert : nombre et halo masqués, voyant normal', o.badgeOp < 0.01 && o.haloOp < 0.01 && (o.voyant === 'none' || o.voyant === '""') && o.vw < 10, o);
     await page.evaluate(() => { document.getElementById('a')._toggle(); ['light.salon', 'switch.prise', 'media_player.ampli', 'cover.volet', 'light.escalier'].forEach((e) => window.setState(e, e.startsWith('cover') ? 'closed' : 'off')); });
     await page.waitForTimeout(600);
     const z = await read();
-    check('tout éteint : ni nombre ni halo', !z.count && !z.halo && z.text === '', z);
+    check('tout éteint : ni nombre ni halo, voyant au repos inchangé', !z.count && !z.halo && z.text === '' && (z.voyant === 'none' || z.voyant === '""') && z.vw < 10 && z.vh > z.vw * 2, z);
     await page.evaluate((items) => { window.setState('light.salon', 'on'); window.mk('a', { show_count: false, show_halo: false }, items); }, ITEMS);
     const d = await read();
-    check('show_count / show_halo : false les désactivent', !d.count && !d.halo, d);
+    check('show_count / show_halo : false les désactivent', !d.count && !d.halo && d.vw < 10, d);
+    await page.evaluate((items) => { window.setState('switch.prise', 'on'); window.mk('a', { count_position: 'badge' }, items); }, ITEMS);
+    await page.waitForTimeout(600);
+    const bd = await read();
+    check('count_position: badge : ancienne pastille, voyant normal', bd.count && bd.text === '2' && bd.badgeOp > 0.99 && bd.vw < 10, bd);
+    // 10 entités ou plus : deux chiffres, voyant plus large
+    const many = await page.evaluate(() => {
+      const items = Array.from({ length: 10 }, (_, k) => ({ entity: `light.n${k}` }));
+      items.forEach((it) => { window.__states[it.entity] = { state: 'on', attributes: {} }; });
+      items.push({ name: 'G', items: [{ entity: 'light.n10' }, { entity: 'light.n11' }] });
+      window.__states['light.n10'] = { state: 'on', attributes: {} };
+      window.mk('a', { auto_close: 0 }, items.slice(0, 9).concat([items[10]]));
+      return null;
+    });
+    void many;
+    await page.waitForTimeout(600);
+    const two = await read();
+    check('10 entités allumées : « 10 » dans un voyant plus large que haut', two.voyant === '"10"' && two.vw > two.vh * 1.2, two);
     check('aucune erreur JS', t.errors.length === 0, t.errors);
     await t.close();
   }

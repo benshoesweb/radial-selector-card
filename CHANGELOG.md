@@ -2,6 +2,12 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Amélioré
+- **Nombre d'entités allumées dans le voyant** : sur le bouton fermé, le voyant s'élargit en capsule et affiche le nombre (au repos, il garde sa forme habituelle). Les chiffres restent droits quelle que soit l'orientation du bouton, et leurs couleurs sont adaptées à chaque thème (métal, Home Assistant, verre, doux, laiton, carbone, néon).
+- Nouvelle option **`count_position`** : `knob` (défaut, dans le voyant) ou `badge` (l'ancienne pastille dans le coin). Réglable dans l'éditeur, section « Bouton central ».
+
 ## [1.2.1] — 2026-11-04
 
 ### Corrigé
