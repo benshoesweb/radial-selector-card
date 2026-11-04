@@ -253,6 +253,14 @@ module.exports = async (browser, h) => {
     await page.waitForTimeout(100);
     const kb = await page.evaluate(() => ({ calls: window.__calls.length, hot: [...window.sr('a').querySelectorAll('.zone')].findIndex((z) => z.classList.contains('hot')) }));
     check('clavier : les flèches déplacent sans rien activer (zone éclairée)', kb.calls === 0 && kb.hot === 2, kb);
+    // Navigation lente au clavier (2 × 0,7 s > auto_close de 1 s) : chaque touche relance le délai
+    await page.waitForTimeout(700);
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForTimeout(700);
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(100);
+    const slow = await page.evaluate(() => ({ open: window.sr('a').querySelector('.selector').classList.contains('active'), hot: [...window.sr('a').querySelectorAll('.zone')].findIndex((z) => z.classList.contains('hot')) }));
+    check('clavier : chaque touche relance la réduction automatique', slow.open && slow.hot === 2, slow);
     await page.keyboard.press('Enter');
     await page.waitForTimeout(100);
     c = await h.calls(page);

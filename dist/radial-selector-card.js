@@ -1658,8 +1658,10 @@
       });
       sel.addEventListener('wheel', (e) => { this._bump(); this._wheel(e); }, { passive: false });
       sel.addEventListener('contextmenu', (e) => { if (this._open) e.preventDefault(); });
-      // Échap : revenir en arrière dans un groupe, sinon fermer
+      // Échap : revenir en arrière dans un groupe, sinon fermer.
+      // Toute touche relance la réduction automatique, comme un geste à la souris ou au doigt.
       sel.addEventListener('keydown', (e) => {
+        this._bump();
         if (e.key === 'Escape' && this._open) { e.preventDefault(); this._knobTap(); }
       });
 
