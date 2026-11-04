@@ -4,7 +4,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
-## [Non publié]
+## [1.3.0] — 2026-11-04
 
 ### Amélioré
 - **Nombre d'entités allumées dans le voyant** : sur le bouton fermé, le voyant s'élargit en un petit bouton légèrement enfoncé, où le nombre est incrusté (au repos, il garde sa forme habituelle). Les chiffres restent droits quelle que soit l'orientation du bouton. Creux, biseau et chiffres sont adaptés à chaque thème (métal, Home Assistant, verre, doux, laiton, carbone, néon).
@@ -98,6 +98,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.3.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.3.0
 [1.2.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.2.1
 [1.2.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.2.0
 [1.1.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.1.0
