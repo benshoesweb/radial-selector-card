@@ -2,6 +2,14 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Corrigé
+- **Clavier et réduction automatique** : les touches (flèches, Tab, Entrée, Espace) relancent maintenant le délai `auto_close`, comme un geste à la souris ou au doigt. Avant, le cercle pouvait se refermer pendant qu'on le parcourait au clavier.
+
+### Maintenance
+- Workflow « Tests » : `actions/setup-node` passe à la version 7 (la version 4 utilisait Node.js 20, abandonné par GitHub).
+
 ## [1.2.0] — 2026-11-04
 
 ### Ajouté
