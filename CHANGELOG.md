@@ -5,8 +5,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 ## [Non publié]
 
 ### Amélioré
-- **Nombre d'entités allumées dans le voyant** : sur le bouton fermé, le voyant s'élargit en capsule et affiche le nombre (au repos, il garde sa forme habituelle). Les chiffres restent droits quelle que soit l'orientation du bouton, et leurs couleurs sont adaptées à chaque thème (métal, Home Assistant, verre, doux, laiton, carbone, néon).
-- Nouvelle option **`count_position`** : `knob` (défaut, dans le voyant) ou `badge` (l'ancienne pastille dans le coin). Réglable dans l'éditeur, section « Bouton central ».
+- **Nombre d'entités allumées dans le voyant** : sur le bouton fermé, le voyant s'élargit en un petit bouton légèrement enfoncé, où le nombre est incrusté (au repos, il garde sa forme habituelle). Les chiffres restent droits quelle que soit l'orientation du bouton. Creux, biseau et chiffres sont adaptés à chaque thème (métal, Home Assistant, verre, doux, laiton, carbone, néon).
+- Nouvelle option **`count_position`** : `knob` (défaut, dans le voyant) ou `badge` (pastille dans le coin, qui masque le nombre du voyant). La pastille prend désormais les couleurs du thème au lieu du bleu fixe. Réglable dans l'éditeur, section « Bouton central ».
 
 ## [1.2.1] — 2026-11-04
 

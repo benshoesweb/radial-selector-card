@@ -49,6 +49,23 @@ module.exports = async (browser, h) => {
     await page.waitForTimeout(600);
     const bd = await read();
     check('count_position: badge : ancienne pastille, voyant normal', bd.count && bd.text === '2' && bd.badgeOp > 0.99 && bd.vw < 10, bd);
+    // Pastille aux couleurs du thème, voyant en creux avec le chiffre incrusté
+    const themed = await page.evaluate((items) => {
+      const out = {};
+      ['metal', 'brass', 'carbon', 'neon'].forEach((skin) => {
+        const el = window.mk('a', { knob_theme: skin, count_position: 'badge' }, items);
+        const bs = getComputedStyle(el.shadowRoot.querySelector('.badge'));
+        out[skin] = { bg: bs.backgroundImage + bs.backgroundColor, color: bs.color };
+      });
+      const el = window.mk('a', { knob_theme: 'metal' }, items);
+      const v = getComputedStyle(el.shadowRoot.querySelector('.knob'), '::after');
+      out.recess = v.boxShadow;
+      out.emboss = v.textShadow;
+      return out;
+    }, ITEMS);
+    await page.waitForTimeout(400);
+    check('pastille : couleurs du thème (métal, laiton, carbone, néon toutes différentes)', new Set(['metal', 'brass', 'carbon', 'neon'].map((k) => themed[k].bg)).size === 4 && themed.brass.color === 'rgb(43, 29, 8)' && themed.neon.color === 'rgb(184, 247, 255)', themed);
+    check('voyant : petit bouton enfoncé (ombre intérieure) et chiffre incrusté', /inset/.test(themed.recess) && themed.emboss !== 'none', themed);
     // 10 entités ou plus : deux chiffres, voyant plus large
     const many = await page.evaluate(() => {
       const items = Array.from({ length: 10 }, (_, k) => ({ entity: `light.n${k}` }));
