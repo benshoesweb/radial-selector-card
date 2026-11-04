@@ -4,7 +4,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
-## [Non publié]
+## [1.3.1] — 2026-11-04
 
 ### Corrigé
 - **Réduction automatique** : un geste (touche, souris, doigt) arrivé moins de 250 ms après le précédent ne repoussait pas la fermeture, si bien que le cercle pouvait se refermer jusqu'à 250 ms trop tôt. Le délai repart maintenant toujours du dernier geste. Le test de navigation au clavier, qui échouait parfois pour cette raison, est désormais stable.
@@ -108,6 +108,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.3.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.3.1
 [1.3.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.3.0
 [1.2.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.2.1
 [1.2.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.2.0
