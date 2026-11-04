@@ -272,6 +272,18 @@ module.exports = async (browser, h) => {
     await page.waitForTimeout(1500);
     const st = await page.evaluate(() => ['a', 'b'].map((id) => window.sr(id).querySelector('.selector').classList.contains('active')));
     check('réduction automatique après 1 s ; 0 = jamais', st[0] === false && st[1] === true, st);
+    // Geste pendant la limitation de 250 ms : il compte quand même (le délai repart de lui)
+    const thr = await page.evaluate(() => new Promise((resolve) => {
+      const el = document.getElementById('a');
+      if (!el._open) el._toggle();
+      const isOpen = () => el.shadowRoot.querySelector('.selector').classList.contains('active');
+      setTimeout(() => el._bump(), 300);   // relance la minuterie
+      setTimeout(() => el._bump(), 450);   // limité (moins de 250 ms) : doit quand même compter
+      const out = {};
+      setTimeout(() => { out.at1370 = isOpen(); }, 1370);   // l'ancienne carte fermait à 1300 ms
+      setTimeout(() => { out.at1600 = isOpen(); resolve(out); }, 1600);   // fermeture attendue vers 1450 ms
+    }));
+    check('réduction automatique : un geste limité (< 250 ms) repousse aussi la fermeture', thr.at1370 === true && thr.at1600 === false, thr);
     check('aucune erreur JS', t.errors.length === 0, t.errors);
     await t.close();
   }
