@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [1.2.0] — 2026-11-04
 
 ### Ajouté
 - **Bouton rotatif physique (jumeau)** : blueprint `blueprints/radial_knob_twin.yaml`. Tourner = entrée suivante / précédente, appuyer = allumer / éteindre, appuyer en tournant (ou double / triple appui) = luminosité, volume, position, consigne, vitesse ou valeur. Mode réglage optionnel (minuteur ou interrupteur) pour les boutons qui ne savent que tourner, geste « tout éteindre ». Modèles Tuya / Moes, IKEA Symfonisk, Philips Hue Tap Dial ; sources Zigbee2MQTT (MQTT), ZHA, entité événement ou capteur d'action, et événement `radial_selector_knob`.
@@ -35,5 +35,6 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 Première version publique : cercle de 2 à 10 entrées, zones tactiles, variateur (appui long, molette), pourcentage sous les lumières, boutons de coin, ligne de boutons, 7 thèmes, 7 animations d'ouverture, apparence de la carte, éditeur visuel complet, écran tactile, souris et clavier, réduction automatique.
 
+[1.2.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.2.0
 [1.1.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.1.0
 [1.0.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.0.0
