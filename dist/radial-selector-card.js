@@ -2414,18 +2414,30 @@
       clearTimeout(this._closeTimer);
       this._closeTimer = null;
       this._armedAt = Date.now();
+      this._lastBump = this._armedAt;
       if (!this._open || !(this._autoClose > 0)) return;
+      this._scheduleClose(this._autoClose * 1000);
+    }
+
+    _scheduleClose(ms) {
       this._closeTimer = setTimeout(() => {
         this._closeTimer = null;
         if (!this._open) return;
         if (this._dim || this._touch) { this._armClose(); return; }
+        // Un geste arrivé pendant la limitation (moins de 250 ms après une relance) compte aussi :
+        // le délai repart de ce dernier geste au lieu de fermer trop tôt
+        const left = this._autoClose * 1000 - (Date.now() - (this._lastBump || 0));
+        if (left > 15) { this._scheduleClose(left); return; }
         this._toggle();
-      }, this._autoClose * 1000);
+      }, ms);
     }
 
     _bump() {
       if (!this._open || !(this._autoClose > 0)) return;
-      if (Date.now() - this._armedAt < 250) return;
+      const now = Date.now();
+      this._lastBump = now;
+      // Limitation : la minuterie n'est pas recréée plus d'une fois toutes les 250 ms
+      if (now - this._armedAt < 250) return;
       this._armClose();
     }
 

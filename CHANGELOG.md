@@ -4,6 +4,16 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [Non publié]
+
+### Corrigé
+- **Réduction automatique** : un geste (touche, souris, doigt) arrivé moins de 250 ms après le précédent ne repoussait pas la fermeture, si bien que le cercle pouvait se refermer jusqu'à 250 ms trop tôt. Le délai repart maintenant toujours du dernier geste. Le test de navigation au clavier, qui échouait parfois pour cette raison, est désormais stable.
+
+#### English
+
+##### Fixed
+- **Auto-collapse**: a gesture (key, mouse, touch) arriving less than 250 ms after the previous one did not push back the closing, so the dial could close up to 250 ms too early. The delay now always restarts from the latest gesture. The keyboard navigation test, which sometimes failed for this reason, is now stable.
+
 ## [1.3.0] — 2026-11-04
 
 ### Amélioré
