@@ -1,0 +1,556 @@
+blueprint:
+  name: Radial Selector Card — bouton rotatif jumeau / physical knob twin
+  description: >
+    Un bouton rotatif physique (Zigbee2MQTT, ZHA, entité événement ou action, ou tout autre
+    appareil via un événement) qui se comporte comme la Radial Selector Card :
+
+
+    * **tourner** : entrée suivante / précédente ;
+
+    * **appuyer** : allumer / éteindre l'entrée choisie ;
+
+    * **appuyer en tournant** (ou double / triple appui selon le modèle) : luminosité, volume,
+    position, consigne, vitesse ou valeur ;
+
+    * **mode réglage** (optionnel, pour les boutons qui ne savent que tourner) : un geste bascule
+    la rotation entre « choisir » et « régler ».
+
+
+    L'entrée choisie est mémorisée dans une aide **Texte** (`input_text`) ou **Liste déroulante**
+    (`input_select`). Indiquez la même aide dans l'option `sync_entity` de la carte : la carte
+    s'ouvre et pointe l'entrée choisie au bouton, et un appui sur la carte choisit l'entrée que le
+    bouton pilotera ensuite.
+
+
+    *A physical rotary knob that mirrors the card: turn = next / previous entry, press = toggle,
+    press + turn = brightness, volume, position… The selection lives in a text helper shared with
+    the card (`sync_entity`).*
+  domain: automation
+  author: benshoesweb
+  source_url: https://github.com/benshoesweb/radial-selector-card/blob/main/blueprints/radial_knob_twin.yaml
+  homeassistant:
+    min_version: 2024.10.0
+  input:
+    dial:
+      name: Cercle / Dial
+      icon: mdi:knob
+      input:
+        entities:
+          name: Entités du cercle / Dial entities
+          description: >
+            Dans le même ordre que dans la carte (sens des aiguilles d'une montre).
+            Lumières, prises, volets, lecteurs, thermostats, ventilateurs, scènes, boutons,
+            input_number…
+          selector:
+            entity:
+              multiple: true
+        selection_helper:
+          name: Aide de sélection / Selection helper
+          description: >
+            Aide **Texte** (recommandé) ou **Liste déroulante** qui garde l'entrée choisie.
+            Créez-la dans Paramètres › Appareils et services › Entrées, puis indiquez-la aussi
+            dans l'option « Synchroniser avec » (`sync_entity`) de la carte.
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - input_text
+                    - input_select
+    knob:
+      name: Bouton physique / Physical knob
+      icon: mdi:gesture-tap-button
+      input:
+        preset:
+          name: Modèle / Model
+          description: >
+            Noms d'actions envoyés par les modèles courants. « Personnalisé » : n'utilise que les
+            listes de la section « Actions personnalisées ».
+          default: z2m_tuya_event
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: "Tuya / Moes / Girier (Zigbee2MQTT, mode « event »)"
+                  value: z2m_tuya_event
+                - label: "Tuya / Moes / Girier (Zigbee2MQTT, mode « command »)"
+                  value: z2m_tuya_command
+                - label: "IKEA Symfonisk 1re génération E1744 (Zigbee2MQTT)"
+                  value: z2m_symfonisk
+                - label: "IKEA Symfonisk 1re génération E1744 (ZHA)"
+                  value: zha_symfonisk
+                - label: "Philips Hue Tap Dial RDM002 (Zigbee2MQTT)"
+                  value: z2m_hue_tap_dial
+                - label: "Personnalisé / Custom"
+                  value: custom
+        mqtt_topic:
+          name: Sujet MQTT des actions (Zigbee2MQTT) / MQTT action topic
+          description: >
+            Ex. `zigbee2mqtt/Bouton salon/action`. Laissez vide si le bouton n'est pas sur
+            Zigbee2MQTT.
+          default: ""
+          selector:
+            text:
+        action_entity:
+          name: Entité d'action / Action entity
+          description: >
+            Entité **événement** (`event.*`, ex. Matter, Hue, Zigbee2MQTT avec entités
+            événement) ou capteur d'action (`sensor.*_action`). Laissez vide sinon.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - event
+                    - sensor
+        zha_device:
+          name: Appareil ZHA / ZHA device
+          description: Le bouton, s'il est appairé avec ZHA. Laissez vide sinon.
+          default: ""
+          selector:
+            device:
+              filter:
+                - integration: zha
+    custom:
+      name: Actions personnalisées / Custom actions
+      icon: mdi:form-textbox
+      collapsed: true
+      description: >
+        Noms d'actions **ajoutés** à ceux du modèle choisi (un par ligne). Pour les trouver :
+        Zigbee2MQTT › appareil › onglet « État » (champ `action`), ou Outils de développement ›
+        Événements › écouter `zha_event` (champ `command`, suivi de `_up` / `_down` pour
+        move / step).
+        Tout autre appareil peut aussi envoyer l'événement `radial_selector_knob` avec
+        `command: next | previous | toggle | up | down | all_off | adjust | select`
+        (et `entity` pour `select`).
+      input:
+        names_next:
+          name: Entrée suivante / Next entry
+          default: []
+          selector:
+            text:
+              multiple: true
+        names_previous:
+          name: Entrée précédente / Previous entry
+          default: []
+          selector:
+            text:
+              multiple: true
+        names_toggle:
+          name: Allumer / éteindre / Toggle
+          default: []
+          selector:
+            text:
+              multiple: true
+        names_up:
+          name: Augmenter (luminosité, volume…) / Increase
+          default: []
+          selector:
+            text:
+              multiple: true
+        names_down:
+          name: Diminuer / Decrease
+          default: []
+          selector:
+            text:
+              multiple: true
+        names_adjust:
+          name: Basculer le mode réglage / Toggle adjust mode
+          default: []
+          selector:
+            text:
+              multiple: true
+        names_all_off:
+          name: Tout éteindre / All off
+          default: []
+          selector:
+            text:
+              multiple: true
+    behaviour:
+      name: Comportement / Behaviour
+      icon: mdi:tune-variant
+      collapsed: true
+      input:
+        step:
+          name: Pas de réglage / Adjust step
+          description: >
+            En % pour la luminosité, le volume, la position et la vitesse. Thermostats et
+            input_number / number suivent leur propre pas.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 50
+              unit_of_measurement: "%"
+              mode: slider
+        wrap:
+          name: Tourner en boucle / Wrap around
+          description: Après la dernière entrée, revenir à la première.
+          default: true
+          selector:
+            boolean:
+        feedback:
+          name: Signaler l'entrée choisie / Selection feedback
+          description: Fait clignoter brièvement la lumière choisie si elle est allumée.
+          default: false
+          selector:
+            boolean:
+        adjust_helper:
+          name: Aide « mode réglage » / Adjust mode helper
+          description: >
+            Optionnel. Quand le mode réglage est actif, tourner règle l'entrée choisie au lieu
+            d'en changer, et un appui en ressort. Le geste « Basculer le mode réglage » l'active
+            et le désactive. Utile pour les boutons qui ne savent pas « appuyer en tournant ».
+            Un **minuteur** (`timer`, ex. 10 s) ressort tout seul du mode réglage après ce délai
+            sans geste ; un **interrupteur** (`input_boolean`) reste actif jusqu'au prochain appui.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - timer
+                    - input_boolean
+
+mode: queued
+max: 25
+max_exceeded: silent
+
+trigger_variables:
+  mqtt_topic: !input mqtt_topic
+
+triggers:
+  - trigger: mqtt
+    id: mqtt
+    topic: "{{ mqtt_topic if mqtt_topic else 'radial-selector-card/unused' }}"
+    enabled: "{{ mqtt_topic | length > 0 }}"
+  - trigger: state
+    id: entity
+    entity_id: !input action_entity
+  - trigger: event
+    id: zha
+    event_type: zha_event
+    event_data:
+      device_id: !input zha_device
+  - trigger: event
+    id: command
+    event_type: radial_selector_knob
+
+variables:
+  entities: !input entities
+  helper: !input selection_helper
+  preset: !input preset
+  step: !input step
+  wrap: !input wrap
+  feedback: !input feedback
+  adjust_input: !input adjust_helper
+  adjust_entity: "{{ adjust_input if adjust_input is string else '' }}"
+  custom_names:
+    next: !input names_next
+    previous: !input names_previous
+    toggle: !input names_toggle
+    up: !input names_up
+    down: !input names_down
+    adjust: !input names_adjust
+    all_off: !input names_all_off
+  presets:
+    z2m_tuya_event:
+      next: [brightness_step_up]
+      previous: [brightness_step_down]
+      toggle: [toggle]
+      up: [color_temperature_step_up]
+      down: [color_temperature_step_down]
+    z2m_tuya_command:
+      next: [rotate_right]
+      previous: [rotate_left]
+      toggle: [single]
+      adjust: [double]
+      all_off: [hold]
+    z2m_symfonisk:
+      next: [brightness_move_up]
+      previous: [brightness_move_down]
+      toggle: [toggle]
+      up: [brightness_step_up]
+      down: [brightness_step_down]
+    zha_symfonisk:
+      next: [move_up, move_with_on_off_up]
+      previous: [move_down, move_with_on_off_down]
+      toggle: [toggle]
+      up: [step_up, step_with_on_off_up]
+      down: [step_down, step_with_on_off_down]
+    z2m_hue_tap_dial:
+      next: [dial_rotate_right_step, dial_rotate_right_slow, dial_rotate_right_fast]
+      previous: [dial_rotate_left_step, dial_rotate_left_slow, dial_rotate_left_fast]
+      toggle: [button_1_press_release]
+      adjust: [button_2_press_release]
+      all_off: [button_4_hold]
+    custom: {}
+
+  # Nom de l'action reçue, quelle que soit la source
+  action_name: >-
+    {% if trigger.id == 'mqtt' %}{{ trigger.payload | string }}
+    {%- elif trigger.id == 'entity' -%}
+      {%- set s = trigger.to_state -%}
+      {%- if s is none or s.state in ['unavailable', 'unknown', ''] -%}
+      {%- elif s.domain == 'event' -%}{{ s.attributes.event_type | default('') }}
+      {%- else -%}{{ s.state }}{%- endif -%}
+    {%- elif trigger.id == 'zha' -%}
+      {%- set d = trigger.event.data -%}
+      {%- set cmd = d.command | default('') | string -%}
+      {%- set p = d.params if d.params is defined and d.params is mapping else {} -%}
+      {%- set ns = namespace(m=none) -%}
+      {%- if 'move_mode' in p -%}{%- set ns.m = p.move_mode -%}
+      {%- elif 'step_mode' in p -%}{%- set ns.m = p.step_mode -%}
+      {%- elif cmd in ['move', 'step', 'move_with_on_off', 'step_with_on_off']
+            and d.args is defined and d.args is sequence and d.args is not string
+            and d.args | count > 0 -%}{%- set ns.m = d.args[0] -%}{%- endif -%}
+      {%- if ns.m is none -%}{{ cmd }}
+      {%- else -%}{%- set ms = ns.m | string | lower -%}{{ cmd }}_{{ 'down' if (ms == '1' or 'down' in ms) else 'up' }}{%- endif -%}
+    {%- elif trigger.id == 'command' -%}{{ trigger.event.data.command | default('') | string }}
+    {%- endif %}
+
+  # Geste reconnu : next, previous, toggle, up, down, adjust, all_off, select
+  command: >-
+    {% if trigger.id == 'command' -%}
+      {%- set target_helper = trigger.event.data.helper | default('') -%}
+      {%- if target_helper in ['', helper] -%}{{ action_name }}{%- endif -%}
+    {%- elif action_name | length > 0 -%}
+      {%- set p = presets[preset] if preset in presets else {} -%}
+      {%- set ns = namespace(c='') -%}
+      {%- for k in ['next', 'previous', 'toggle', 'up', 'down', 'adjust', 'all_off'] -%}
+        {%- if ns.c == '' and (action_name in (p[k] | default([])) or action_name in (custom_names[k] | default([]) or [])) -%}
+          {%- set ns.c = k -%}
+        {%- endif -%}
+      {%- endfor -%}{{ ns.c }}
+    {%- endif %}
+
+  adjusting: "{{ adjust_entity != '' and states(adjust_entity) in ['on', 'active'] }}"
+  # En mode réglage, tourner règle l'entrée choisie et un appui ressort du mode réglage
+  gesture: >-
+    {% if adjusting and command == 'next' %}up
+    {%- elif adjusting and command == 'previous' %}down
+    {%- elif adjusting and command == 'toggle' %}adjust_exit
+    {%- else %}{{ command }}{% endif %}
+
+  current: "{{ states(helper) }}"
+  count: "{{ entities | count }}"
+  index: >-
+    {% set ns = namespace(i=-1) %}
+    {%- for e in entities -%}{%- if ns.i < 0 and e == current -%}{%- set ns.i = loop.index0 -%}{%- endif -%}{%- endfor -%}
+    {{ ns.i }}
+  # Entité pilotée : celle de l'aide (même choisie depuis la carte), sinon la 1re du cercle
+  target: >-
+    {% if index | int >= 0 %}{{ current }}
+    {%- elif current | regex_match('^[a-z_]+\.[a-z0-9_]+$') and states(current) not in ['unknown', 'unavailable'] %}{{ current }}
+    {%- elif count > 0 %}{{ entities[0] }}
+    {%- endif %}
+  new_entity: >-
+    {% set i = index | int %}
+    {%- if count == 0 %}
+    {%- elif gesture == 'select' %}{{ trigger.event.data.entity | default('') }}
+    {%- elif gesture == 'next' %}
+      {%- if i < 0 %}{{ entities[0] }}
+      {%- elif i + 1 < count %}{{ entities[i + 1] }}
+      {%- else %}{{ entities[0] if wrap else entities[i] }}{% endif %}
+    {%- elif gesture == 'previous' %}
+      {%- if i < 0 %}{{ entities[count - 1] }}
+      {%- elif i > 0 %}{{ entities[i - 1] }}
+      {%- else %}{{ entities[count - 1] if wrap else entities[0] }}{% endif %}
+    {%- endif %}
+
+conditions:
+  - condition: template
+    value_template: "{{ gesture != '' and count > 0 }}"
+
+actions:
+  - choose:
+      # ---------- Choisir une entrée ----------
+      - conditions: "{{ gesture in ['next', 'previous', 'select'] and new_entity != '' }}"
+        sequence:
+          - if: "{{ helper.startswith('input_select.') }}"
+            then:
+              - if: "{{ new_entity not in (state_attr(helper, 'options') or []) }}"
+                then:
+                  - action: input_select.set_options
+                    target:
+                      entity_id: "{{ helper }}"
+                    data:
+                      options: "{{ (entities + [new_entity]) | unique | list }}"
+              - action: input_select.select_option
+                target:
+                  entity_id: "{{ helper }}"
+                data:
+                  option: "{{ new_entity }}"
+            else:
+              - action: input_text.set_value
+                target:
+                  entity_id: "{{ helper }}"
+                data:
+                  value: "{{ new_entity }}"
+          - if: "{{ feedback and new_entity.startswith('light.') and is_state(new_entity, 'on') }}"
+            then:
+              - action: light.turn_on
+                target:
+                  entity_id: "{{ new_entity }}"
+                data:
+                  flash: short
+                continue_on_error: true
+
+      # ---------- Allumer / éteindre ----------
+      - conditions: "{{ gesture == 'toggle' and target != '' }}"
+        sequence:
+          - variables:
+              domain: "{{ target.split('.')[0] }}"
+          - choose:
+              - conditions: "{{ domain in ['button', 'input_button'] }}"
+                sequence:
+                  - action: "{{ domain }}.press"
+                    target:
+                      entity_id: "{{ target }}"
+              - conditions: "{{ domain in ['scene', 'script'] }}"
+                sequence:
+                  - action: "{{ domain }}.turn_on"
+                    target:
+                      entity_id: "{{ target }}"
+              - conditions: "{{ domain == 'lock' }}"
+                sequence:
+                  - action: "{{ 'lock.unlock' if is_state(target, 'locked') else 'lock.lock' }}"
+                    target:
+                      entity_id: "{{ target }}"
+              - conditions: "{{ domain == 'media_player' }}"
+                sequence:
+                  - action: media_player.media_play_pause
+                    target:
+                      entity_id: "{{ target }}"
+            default:
+              - action: homeassistant.toggle
+                target:
+                  entity_id: "{{ target }}"
+
+      # ---------- Régler (luminosité, volume, position, consigne, vitesse, valeur) ----------
+      - conditions: "{{ gesture in ['up', 'down'] and target != '' }}"
+        sequence:
+          - variables:
+              domain: "{{ target.split('.')[0] }}"
+              dir: "{{ 1 if gesture == 'up' else -1 }}"
+          - choose:
+              - conditions: "{{ domain == 'light' }}"
+                sequence:
+                  - if: "{{ is_state(target, 'off') }}"
+                    then:
+                      - if: "{{ dir > 0 }}"
+                        then:
+                          - action: light.turn_on
+                            target:
+                              entity_id: "{{ target }}"
+                            data:
+                              brightness_pct: "{{ step }}"
+                    else:
+                      - action: light.turn_on
+                        target:
+                          entity_id: "{{ target }}"
+                        data:
+                          brightness_step_pct: "{{ dir * step }}"
+              - conditions: "{{ domain == 'media_player' }}"
+                sequence:
+                  - if: "{{ state_attr(target, 'volume_level') is number }}"
+                    then:
+                      - action: media_player.volume_set
+                        target:
+                          entity_id: "{{ target }}"
+                        data:
+                          volume_level: >-
+                            {{ [0, [1, (state_attr(target, 'volume_level') + dir * step / 100) | round(2)] | min] | max }}
+                    else:
+                      - action: "{{ 'media_player.volume_up' if dir > 0 else 'media_player.volume_down' }}"
+                        target:
+                          entity_id: "{{ target }}"
+              - conditions: "{{ domain == 'cover' }}"
+                sequence:
+                  - if: "{{ state_attr(target, 'current_position') is number }}"
+                    then:
+                      - action: cover.set_cover_position
+                        target:
+                          entity_id: "{{ target }}"
+                        data:
+                          position: >-
+                            {{ [0, [100, state_attr(target, 'current_position') + dir * step] | min] | max | int }}
+                    else:
+                      - action: "{{ 'cover.open_cover' if dir > 0 else 'cover.close_cover' }}"
+                        target:
+                          entity_id: "{{ target }}"
+              - conditions: "{{ domain == 'climate' }}"
+                sequence:
+                  - variables:
+                      t_step: "{{ state_attr(target, 'target_temp_step') or (1 if (state_attr(target, 'temperature_unit') or '') == '°F' else 0.5) }}"
+                      t_now: "{{ state_attr(target, 'temperature') }}"
+                  - if: "{{ t_now is number }}"
+                    then:
+                      - action: climate.set_temperature
+                        target:
+                          entity_id: "{{ target }}"
+                        data:
+                          temperature: >-
+                            {% set lo = state_attr(target, 'min_temp') or 5 %}
+                            {% set hi = state_attr(target, 'max_temp') or 35 %}
+                            {{ [lo, [hi, ((t_now + dir * t_step) / t_step) | round(0) * t_step] | min] | max | round(1) }}
+              - conditions: "{{ domain == 'fan' }}"
+                sequence:
+                  - action: "{{ 'fan.increase_speed' if dir > 0 else 'fan.decrease_speed' }}"
+                    target:
+                      entity_id: "{{ target }}"
+                    data:
+                      percentage_step: "{{ step }}"
+              - conditions: "{{ domain == 'input_number' }}"
+                sequence:
+                  - action: "{{ 'input_number.increment' if dir > 0 else 'input_number.decrement' }}"
+                    target:
+                      entity_id: "{{ target }}"
+              - conditions: "{{ domain == 'number' }}"
+                sequence:
+                  - action: number.set_value
+                    target:
+                      entity_id: "{{ target }}"
+                    data:
+                      value: >-
+                        {% set s = state_attr(target, 'step') or 1 %}
+                        {% set lo = state_attr(target, 'min') or 0 %}
+                        {% set hi = state_attr(target, 'max') or 100 %}
+                        {{ [lo, [hi, states(target) | float(lo) + dir * s] | min] | max }}
+            default:
+              - action: "{{ 'homeassistant.turn_on' if dir > 0 else 'homeassistant.turn_off' }}"
+                target:
+                  entity_id: "{{ target }}"
+          # En mode réglage, chaque geste relance le minuteur
+          - if: "{{ adjusting and adjust_entity.startswith('timer.') }}"
+            then:
+              - action: timer.start
+                target:
+                  entity_id: "{{ adjust_entity }}"
+
+      # ---------- Mode réglage ----------
+      - conditions: "{{ gesture == 'adjust' and adjust_entity != '' }}"
+        sequence:
+          - variables:
+              adjust_domain: "{{ adjust_entity.split('.')[0] }}"
+          - action: >-
+              {% if adjust_domain == 'timer' %}{{ 'timer.cancel' if adjusting else 'timer.start' }}
+              {%- else %}input_boolean.toggle{% endif %}
+            target:
+              entity_id: "{{ adjust_entity }}"
+      - conditions: "{{ gesture == 'adjust_exit' and adjust_entity != '' }}"
+        sequence:
+          - action: "{{ 'timer.cancel' if adjust_entity.startswith('timer.') else 'input_boolean.turn_off' }}"
+            target:
+              entity_id: "{{ adjust_entity }}"
+
+      # ---------- Tout éteindre ----------
+      - conditions: "{{ gesture == 'all_off' }}"
+        sequence:
+          - variables:
+              lit: >-
+                {{ entities | select('match', '^(light|switch|fan|input_boolean)\.')
+                   | select('is_state', 'on') | list }}
+          - if: "{{ lit | count > 0 }}"
+            then:
+              - action: homeassistant.turn_off
+                target:
+                  entity_id: "{{ lit }}"

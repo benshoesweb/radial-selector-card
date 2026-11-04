@@ -16,6 +16,9 @@
  *   - Entités en ligne en dessous (row_items) : style tile/metal, action, couleurs
  *   - Boutons dans les coins (extra_buttons, 4 max) : coin, style, action / pop-up, couleurs
  *   - Réduction automatique (auto_close)
+ *   - Jumeau d'un bouton rotatif physique (sync_entity : input_text / input_select partagé avec le
+ *     blueprint blueprints/radial_knob_twin.yaml) : la carte s'ouvre et pointe l'entrée choisie au
+ *     bouton (sync_open), et un appui dans la carte choisit l'entrée que le bouton pilotera
  *   - Apparence de la carte (card_style, card_background, card_border_color)
  *
  * Options de couleur (boutons en ligne et de coin) :
@@ -1152,6 +1155,10 @@
       night_entity: 'Entité (ex. input_boolean.nuit)', night_level: 'Luminosité de la carte la nuit :',
       night_hint: 'Les couleurs de la carte sont atténuées pour ne pas éblouir (écran mural, chambre).',
 
+      sec_sync: 'Bouton rotatif physique', sync_entity: 'Synchroniser avec (aide Texte ou Liste déroulante)',
+      sync_open: 'Ouvrir la carte quand on tourne le bouton physique',
+      sync_hint: 'À utiliser avec le blueprint « bouton rotatif jumeau » : la carte pointe l\'entrée choisie au bouton, et un appui sur une entrée de la carte la fait piloter par le bouton.',
+
       sec_card: 'Apparence de la carte', card_style: 'Fond et contour',
       cs_border_only: 'Contour sans fond (défaut)', cs_standard: 'Fond + contour (thème HA)', cs_background_only: 'Fond sans contour', cs_transparent: 'Transparente (ni fond ni contour)',
       card_background: 'Couleur du fond', card_border_color: 'Couleur du contour', theme_ha: 'Thème HA',
@@ -1220,6 +1227,10 @@
       n_off: 'Off (default)', n_sun: 'After sunset', n_entity: 'When an entity is on', n_always: 'Always',
       night_entity: 'Entity (e.g. input_boolean.night)', night_level: 'Card brightness at night:',
       night_hint: 'The card\'s colors are dimmed so they don\'t dazzle (wall screen, bedroom).',
+
+      sec_sync: 'Physical rotary knob', sync_entity: 'Sync with (text or dropdown helper)',
+      sync_open: 'Open the card when the physical knob is turned',
+      sync_hint: 'Use with the "physical knob twin" blueprint: the card points at the entry chosen with the knob, and tapping an entry in the card makes the knob control it.',
 
       sec_card: 'Card appearance', card_style: 'Background and border',
       cs_border_only: 'Border, no background (default)', cs_standard: 'Background + border (HA theme)', cs_background_only: 'Background, no border', cs_transparent: 'Transparent (no background, no border)',
@@ -1454,6 +1465,8 @@
       this._path = [];
       this._lastMode = null;
       this._haloKey = null;
+      this._syncSeen = undefined;   // dernière valeur lue dans l'aide de synchronisation
+      this._syncWrote = null;       // valeur écrite par la carte (son écho ne doit pas rouvrir la carte)
       this._build();
       if (this._hass) this.hass = this._hass;
     }
@@ -2049,6 +2062,7 @@
       if (isGroup(it) && !it.tap_action) { this._enter(i); return; }
       this._select(i);
       this._haptic('light');
+      this._syncWrite(it);
       this._run(i, 'tap');
       if (this._config.close_on_select) setTimeout(() => { if (this._open) this._toggle(); }, 450);
     }
@@ -2059,6 +2073,7 @@
       if (!it) return;
       this._select(i);
       this._haptic('medium');
+      this._syncWrite(it);
       if (!it.hold_action && this._control(it) && this._dimStart(i, pointerId)) return;
       if (!it.hold_action && isGroup(it) && !it.entity) { this._toggleGroup(it); return; }
       this._run(i, 'hold');
@@ -2278,9 +2293,9 @@
           this._path = [];
           clearTimeout(this._resetTimer);
           this._resetTimer = setTimeout(() => {
-            if (!this._open && this._ringKey !== '') { this._buildRing(); this._updateStates(); this._updateLabel(); }
+            if (!this._open && this._ringKey !== '') { this._buildRing(); this._updateStates(); this._select(this._restIndex()); this._updateLabel(); }
           }, 600);
-        } else this._select(0);
+        } else this._select(this._restIndex());
       }
       this._updateLabel();
       this._armClose();
@@ -2375,6 +2390,88 @@
       this._hass = hass;
       if (!this._wrap) return;
       this._updateStates();
+      this._syncFromHelper();
+    }
+
+    // ---------- Jumeau d'un bouton physique (sync_entity) ----------
+    // L'aide (input_text / input_select) contient l'entity_id de l'entrée choisie au bouton.
+    _syncValue() {
+      const e = this._config.sync_entity;
+      const st = e && this._hass && this._hass.states[e];
+      return st && !['unknown', 'unavailable', ''].includes(st.state) ? String(st.state) : null;
+    }
+
+    // Place d'une entité dans l'arbre des entrées : [groupe…, index], ou null
+    _findPath(entity) {
+      const walk = (list, prefix) => {
+        const i = list.findIndex((it) => it && it.entity === entity);
+        if (i >= 0) return [...prefix, i];
+        for (let k = 0; k < list.length; k += 1) {
+          if (isGroup(list[k])) {
+            const r = walk(list[k].items, [...prefix, k]);
+            if (r) return r;
+          }
+        }
+        return null;
+      };
+      return entity ? walk(this._config.items, []) : null;
+    }
+
+    // Entrée pointée par le bouton fermé : celle de l'aide (ou son groupe), sinon la 1re
+    _restIndex() {
+      const p = this._findPath(this._syncValue());
+      return p ? p[0] : 0;
+    }
+
+    _syncFromHelper() {
+      if (!this._config.sync_entity) return;
+      const v = this._syncValue();
+      if (v === this._syncSeen) return;
+      const first = this._syncSeen === undefined;
+      this._syncSeen = v;
+      // Écho d'une valeur écrite par la carte elle-même : ne pas rouvrir la carte
+      const echo = v != null && v === this._syncWrote;
+      if (echo) this._syncWrote = null;
+      const p = this._findPath(v);
+      if (!p || this._dim || this._touch || this._mouse) return;
+      const group = p.slice(0, -1);
+      const idx = p[p.length - 1];
+      if (first || echo || this._config.sync_open === false) {
+        // Première lecture, écho ou ouverture désactivée : la carte pointe l'entrée sans s'ouvrir
+        if (!this._open) this._select(p[0]);
+        else if (this._ringKey === group.join('/')) this._select(idx);
+        return;
+      }
+      if (!this._open) {
+        this._path = group;
+        this._toggle();
+      } else if (this._ringKey !== group.join('/')) {
+        this._path = group;
+        this._rebuildRing();
+      } else {
+        this._setHover(null);
+        this._armClose();
+      }
+      this._select(idx);
+    }
+
+    // Appui dans la carte : l'entrée touchée devient celle que le bouton pilote
+    _syncWrite(it) {
+      const helper = this._config.sync_entity;
+      if (!helper || !it || !it.entity || !this._hass || this._config.sync_from_card === false) return;
+      const v = String(it.entity);
+      if (this._syncValue() === v) return;
+      const domain = String(helper).split('.')[0];
+      if (domain === 'input_text' || domain === 'text') {
+        this._syncWrote = v;
+        this._hass.callService(domain, 'set_value', { entity_id: helper, value: v });
+      } else if (domain === 'input_select' || domain === 'select') {
+        const st = this._hass.states[helper];
+        const options = (st && st.attributes && st.attributes.options) || [];
+        if (!options.includes(v)) return;
+        this._syncWrote = v;
+        this._hass.callService(domain, 'select_option', { entity_id: helper, option: v });
+      }
     }
 
     _updateStates() {
@@ -2782,7 +2879,7 @@
   const CENTER_KINDS = ['none', 'all_off', 'popup', 'navigate', 'scene'];
   const NIGHT_MODES = ['off', 'sun', 'entity', 'always'];
   // Options actives par défaut : l'éditeur n'écrit que « false »
-  const DEFAULT_TRUE = ['show_brightness', 'show_count', 'show_halo', 'haptics'];
+  const DEFAULT_TRUE = ['show_brightness', 'show_count', 'show_halo', 'haptics', 'sync_open'];
   // Valeur par défaut des listes : choisir le défaut retire la clé
   const SELECT_DEFAULTS = { theme: 'auto', card_style: 'border_only', knob_theme: 'metal', open_animation: 'fan', palette: 'rainbow', night_mode: 'off' };
   const RANGE_DEFAULTS = { zone_opacity: 80, night_level: 60 };
@@ -2874,6 +2971,7 @@
         CARD_STYLES_LIST.includes(c.card_style) ? c.card_style : 'border_only',
         centerKind(c.center_hold_action),
         NIGHT_MODES.includes(c.night_mode) ? c.night_mode : 'off',
+        !!c.sync_entity,
       ]);
     }
 
@@ -3233,6 +3331,15 @@
           </div>
 
           <div class="section" data-list="__top" data-idx="0">
+            <div class="section-title">${esc(t('sec_sync'))}</div>
+            <div class="grid-2">
+              <div class="field"><label>${esc(t('sync_entity'))}</label><ha-entity-picker data-key="sync_entity" allow-custom-entity></ha-entity-picker></div>
+            </div>
+            ${c.sync_entity ? `<div class="switches">${sw('sync_open', c.sync_open !== false, t('sync_open'))}</div>` : ''}
+            <div class="hint" style="margin:10px 0 0">${esc(t('sync_hint'))}</div>
+          </div>
+
+          <div class="section" data-list="__top" data-idx="0">
             <div class="section-title">${esc(t('sec_card'))}</div>
             <div class="grid-2">
               <div class="field"><label>${esc(t('card_style'))}</label>
@@ -3310,6 +3417,7 @@
           ep.hass = this._hass;
           if (key === 'entity') ep.label = this._t('entity');
           if (key === 'center_scene') ep.includeDomains = ['scene'];
+          if (key === 'sync_entity') ep.includeDomains = ['input_text', 'input_select'];
           ep.addEventListener('value-changed', (ev) => {
             ev.stopPropagation();
             const v = ev.detail.value || undefined;

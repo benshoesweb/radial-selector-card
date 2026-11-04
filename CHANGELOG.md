@@ -2,6 +2,13 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les versions suivent le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+- **Bouton rotatif physique (jumeau)** : blueprint `blueprints/radial_knob_twin.yaml`. Tourner = entrée suivante / précédente, appuyer = allumer / éteindre, appuyer en tournant (ou double / triple appui) = luminosité, volume, position, consigne, vitesse ou valeur. Mode réglage optionnel (minuteur ou interrupteur) pour les boutons qui ne savent que tourner, geste « tout éteindre ». Modèles Tuya / Moes, IKEA Symfonisk, Philips Hue Tap Dial ; sources Zigbee2MQTT (MQTT), ZHA, entité événement ou capteur d'action, et événement `radial_selector_knob`.
+- **`sync_entity`** (aide `input_text` / `input_select`) : la carte s'ouvre et pointe l'entrée choisie au bouton, y compris dans un groupe ; le bouton fermé la pointe aussi. `sync_open: false` : la carte reste fermée. Un appui sur une entrée de la carte la fait piloter par le bouton (`sync_from_card: false` pour désactiver). Section « Bouton rotatif physique » dans l'éditeur.
+- 19 vérifications automatiques de plus (189 au total).
+
 ## [1.1.0] — 2026-11-03
 
 ### Ajouté
