@@ -19,7 +19,7 @@ Sélecteur rotatif pour les tableaux de bord Home Assistant : vos lumières et a
   - ampli / TV : volume · volets : position · thermostat : consigne · ventilateur : vitesse · `input_number` : valeur.
 - **Valeur sous l'icône** : 50 %, 20,5°, 35 %, « 2/3 » pour un groupe…
 - **Appui long sur le bouton central** : tout éteindre, ouvrir une pop-up, une vue ou activer une scène.
-- **Bouton fermé** : nombre d'entités allumées et halo coloré.
+- **Bouton fermé** : le voyant devient un petit bouton enfoncé où s'incruste le nombre d'entités allumées, aux couleurs du thème (ou une pastille dans le coin, au choix), et un halo coloré entoure le bouton.
 - **Zones tactiles** : un secteur par entrée, qui s'éclaire sous la souris ou le doigt.
 - **Boutons de coin** (jusqu'à 4) et **ligne de boutons** : pop-up Bubble Card, vue, appareil, avec voyant d'état.
 - **7 thèmes** (métal, thème Home Assistant, verre, doux, laiton, carbone, néon) et **7 animations d'ouverture**.
@@ -27,6 +27,7 @@ Sélecteur rotatif pour les tableaux de bord Home Assistant : vos lumières et a
 - **Bouton rotatif physique** (Zigbee2MQTT, ZHA, Matter…) qui pilote les mêmes entrées que la carte, avec le blueprint fourni : [voir plus bas](#bouton-rotatif-physique-jumeau).
 - **Éditeur visuel complet** en français ou en anglais, qui conserve la disposition (`grid_options`) et la visibilité de la carte.
 
+![Voyant et nombre d'entités allumées](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/voyant.png)
 ![Nouveautés](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/nouveautes.png)
 ![Thèmes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/themes-sombre.png)
 ![Animations](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/animations.gif)
@@ -105,6 +106,7 @@ extra_buttons:
 | `dimmer` | `false` : pas de molette ; `true` : molette forcée (lumière) — aussi par entrée | auto |
 | `show_brightness` | valeur sous l'icône (%, volume, position, consigne…) | `true` |
 | `show_count` | nombre d'entités allumées sur le bouton fermé | `true` |
+| `count_position` | `knob` : incrusté dans le voyant du bouton ; `badge` : pastille dans le coin, aux couleurs du thème | `knob` |
 | `show_halo` | halo coloré des entrées allumées autour du bouton fermé | `true` |
 | `haptics` | retour haptique au doigt | `true` |
 | `night_mode` | `sun` (soleil couché), `entity` (avec `night_entity`), `always` | désactivé |
@@ -174,7 +176,7 @@ A rotary selector for Home Assistant dashboards: lights and devices around a kno
 - **2 to 10 entries** around the dial; an entry with its own `items` opens a **sub-dial (group)** — tap the center knob to go back.
 - **Long press + turn** (or mouse wheel): brightness, then **white** and **color** on successive long presses for color lights; volume (`media_player`), position (`cover`), setpoint (`climate`), speed (`fan`), value (`input_number` / `number`).
 - **Long press on the center knob** (`center_hold_action`): `all_off`, pop-up, view, scene…
-- **Closed knob**: number of entities on (`show_count`) and a colored halo (`show_halo`).
+- **Closed knob**: the indicator becomes a small recessed button with the number of entities on inlaid in it, in the knob theme's colors (`show_count`; `count_position: badge` for a themed corner badge instead), and a colored halo (`show_halo`).
 - **Night mode** (`night_mode: sun | entity | always`, `night_level`), **haptic feedback** on touch screens (`haptics`).
 - **Physical knob twin**: with the [`radial_knob_twin.yaml`](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbenshoesweb%2Fradial-selector-card%2Fblob%2Fmain%2Fblueprints%2Fradial_knob_twin.yaml) blueprint, a Zigbee rotary knob (Zigbee2MQTT, ZHA, event entities…) turns through the same entries (the card opens and points at them), toggles on press and adjusts brightness, volume, position… on press + turn. Share a text helper between the blueprint and the card (`sync_entity`); `sync_open: false` keeps the card closed, `sync_from_card: false` stops card taps from changing the knob's entry.
 - Corner buttons, a row of buttons, 7 knob themes, 7 opening animations, touch / mouse / keyboard.
@@ -188,7 +190,7 @@ Install it from the Marketplace / HACS with the **Open in Home Assistant** butto
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 189 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
+npm test          # 197 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
 ```
 
 Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**). Historique : [CHANGELOG.md](CHANGELOG.md).

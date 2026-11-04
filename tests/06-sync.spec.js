@@ -30,6 +30,19 @@ module.exports = async (browser, h) => {
     await page.waitForTimeout(200);
     const r0 = await read(page);
     check('au chargement : pointe l\'entrée de l\'aide, sans s\'ouvrir', !r0.open && r0.sel === 1 && r0.angle === '0deg', r0);
+    await page.evaluate(() => { window.setState('light.cuisine', 'on'); window.setState('light.salon', 'on'); });
+    await page.evaluate(() => { const el = document.getElementById('a'); el._config.sync_open = false; window.setState('input_text.bouton', 'switch.prise'); });
+    await page.waitForTimeout(700);
+    const up = await page.evaluate(() => {
+      const k = window.sr('a').querySelector('.knob');
+      const ang = (m) => { const v = m.match(/matrix\(([^)]+)\)/); if (!v) return 0; const [a, b] = v[1].split(',').map(Number); return Math.atan2(b, a) * 180 / Math.PI; };
+      const kn = ang(getComputedStyle(k).transform);
+      const af = ang(getComputedStyle(k, '::after').transform);
+      return { kn: Math.round(kn), total: Math.round(((kn + af) % 360 + 540) % 360 - 180), content: getComputedStyle(k, '::after').content };
+    });
+    check('bouton tourné vers une autre entrée : le nombre du voyant reste droit', up.content !== 'none' && up.content !== '""' && Math.abs(up.kn) >= 45 && Math.abs(up.total) <= 1, up);
+    await page.evaluate(() => { document.getElementById('a')._config.sync_open = true; window.setState('input_text.bouton', 'light.cuisine'); document.getElementById('a')._open && document.getElementById('a')._toggle(); });
+    await page.waitForTimeout(300);
 
     await page.evaluate(() => window.setState('input_text.bouton', 'switch.prise'));
     await page.waitForTimeout(200);

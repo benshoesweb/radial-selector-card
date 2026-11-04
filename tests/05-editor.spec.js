@@ -206,6 +206,15 @@ module.exports = async (browser, h) => {
       return { opt, a: last().row_items[0].tap_action };
     });
     check('boutons : action « tout éteindre » proposée', act.opt.includes('all_off') && act.a.action === 'all_off', act);
+    const cp = await page.evaluate(() => {
+      const sel = top$('count_position');
+      const opts = [...sel.options].map((o) => o.textContent);
+      choose(sel, 'badge');
+      const a = last().count_position;
+      choose(top$('count_position'), 'knob');
+      return { opts, a, b: 'count_position' in last() };
+    });
+    check('nombre d\'entités allumées : voyant (défaut) ou pastille', cp.opts[0] === 'Dans le voyant du bouton (défaut)' && cp.a === 'badge' && cp.b === false, cp);
   }
   check('éditeur : aucune erreur JS', t.errors.length === 0, t.errors);
   await t.close();

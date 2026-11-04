@@ -11,7 +11,8 @@
  *   - Molette à l'appui long : luminosité (puis blanc et couleur par appuis longs successifs),
  *     volume (media_player), position (cover), consigne (climate), vitesse (fan), input_number / number
  *   - Appui long sur le bouton central (center_hold_action) : all_off (tout éteindre), pop-up, vue, scène…
- *   - Bouton fermé : nombre d'entités allumées (show_count) et halo coloré (show_halo)
+ *   - Bouton fermé : nombre d'entités allumées (show_count) dans le voyant du bouton, ou en pastille
+ *     dans le coin (count_position: badge), et halo coloré (show_halo)
  *   - Retour haptique au doigt (haptics), mode nuit (night_mode: sun | entity | always, night_entity, night_level)
  *   - Entités en ligne en dessous (row_items) : style tile/metal, action, couleurs
  *   - Boutons dans les coins (extra_buttons, 4 max) : coin, style, action / pop-up, couleurs
@@ -222,12 +223,21 @@
     }
     .knob::after {
       content: "";
-      display: block;
+      display: grid;
+      place-items: center;
       position: absolute;
+      left: 50%;
       width: 4%;
       min-width: 3px;
       height: 14%;
       top: calc(var(--radius) * 0.13);
+      padding: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      color: transparent;
+      font: 700 max(10px, calc(var(--radius) * 0.13)) / 1 Roboto, "Segoe UI", sans-serif;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
       background: var(--rsc-knob-color);
       border-radius: 9999px;
       box-shadow:
@@ -237,8 +247,43 @@
         inset 0 -1px 2px var(--rsc-knob-on-darker),
         0 0 calc(var(--rsc-is-active) * 4px) var(--rsc-knob-on),
         0 0 calc(var(--rsc-is-active) * 16px) var(--rsc-knob-glow);
+      transform: translateX(-50%) rotate(var(--rsc-v-rot, 0deg)) scale(var(--rsc-v-scale, 1));
+      transition:
+        width 0.3s cubic-bezier(0.34, 1.4, 0.5, 1),
+        height 0.3s cubic-bezier(0.34, 1.4, 0.5, 1),
+        top 0.3s cubic-bezier(0.34, 1.4, 0.5, 1),
+        transform 0.4s var(--rsc-cubic),
+        color 0.2s ease,
+        background 0.3s ease;
     }
-    .knob:active::after { transform: scale(0.95); }
+    .knob:active::after { --rsc-v-scale: 0.95; }
+
+    /* Bouton fermé avec des entités allumées : le voyant s'élargit en un petit bouton légèrement
+       enfoncé dans la face, le nombre incrusté dedans. Les chiffres restent droits quelle que soit
+       l'orientation du bouton (contre-rotation).
+       Par thème : --rsc-count-bg (creux), --rsc-count-color, --rsc-count-shadow (incrustation),
+       --rsc-count-box (biseau du creux) ; pastille : --rsc-count-face, --rsc-badge-color, --rsc-badge-box */
+    .selector.count-on:not(.active):not(.count-badge) .knob::after {
+      --rsc-v-h: max(16px, calc(var(--radius) * 0.21));
+      --rsc-v-rot: calc(-1 * var(--rsc-knob-rot, calc(var(--rsc-knob-angle, var(--rsc-angle)) + var(--rsc-angle-offset))));
+      content: attr(data-count);
+      width: calc(var(--rsc-v-h) * (0.62 + 0.38 * var(--rsc-v-digits, 1)));
+      min-width: var(--rsc-v-h);
+      height: var(--rsc-v-h);
+      top: calc(var(--radius) * 0.2 - var(--rsc-v-h) / 2);
+      padding-top: 1px;
+      font-size: max(9px, calc(var(--radius) * 0.118));
+      color: var(--rsc-count-color, rgb(255 255 255 / 0.96));
+      text-shadow: var(--rsc-count-shadow, 0 -1px 0 rgb(0 0 0 / 0.55), 0 1px 0 rgb(255 255 255 / 0.12));
+      background: var(--rsc-count-bg,
+        linear-gradient(to bottom, color-mix(in srgb, var(--rsc-accent-off-darker) 62%, #000), var(--rsc-accent-off) 85%));
+      box-shadow: var(--rsc-count-box,
+        inset 0 2px 4px rgb(0 0 0 / 0.6),
+        inset 0 -1px 1px rgb(255 255 255 / 0.16),
+        0 1px 0 rgb(255 255 255 / 0.5),
+        0 -1px 0 rgb(0 0 0 / 0.3));
+      transition-delay: 0.15s, 0.15s, 0.15s, 0s, 0.15s, 0s;
+    }
     .knob:hover { --rsc-knob-color: linear-gradient(to top, var(--rsc-knob-on), var(--rsc-knob-on-darker)); }
     .knob:focus-visible::after { outline: 2px solid var(--primary-color); outline-offset: 2px; }
 
@@ -656,15 +701,20 @@
       place-items: center;
       font: 700 max(10px, calc(var(--radius) * 0.12)) / 1 Roboto, "Segoe UI", sans-serif;
       font-variant-numeric: tabular-nums;
-      color: var(--text-primary-color, #fff);
-      background: var(--rsc-badge-bg, var(--primary-color, #03a9f4));
-      box-shadow: 0 0 0 2px var(--rsc-outer-bg), 0 2px 5px rgb(0 0 0 / 0.4);
+      color: var(--rsc-badge-color, var(--rsc-count-color, #fff));
+      text-shadow: var(--rsc-badge-shadow, 0 1px 1px rgb(0 0 0 / 0.45));
+      background: var(--rsc-badge-bg, var(--rsc-count-face, var(--rsc-knob-color)));
+      box-shadow: var(--rsc-badge-box,
+        0 0 0 2px var(--rsc-outer-bg),
+        0 2px 5px rgb(0 0 0 / 0.4),
+        inset 0 1px 0 rgb(255 255 255 / 0.3),
+        inset 0 -1px 1px rgb(0 0 0 / 0.25));
       pointer-events: none;
       opacity: 0;
       transform: scale(0.3);
       transition: opacity 0.2s ease, transform 0.35s cubic-bezier(0.34, 1.6, 0.5, 1);
     }
-    .selector.count-on:not(.active) .badge { opacity: 1; transform: scale(1); transition-delay: 0.15s; }
+    .selector.count-badge.count-on:not(.active) .badge { opacity: 1; transform: scale(1); transition-delay: 0.15s; }
     .halo {
       position: absolute;
       left: 50%;
@@ -1020,6 +1070,61 @@
       --rsc-xbtn-shadow: 0 0 0 1px rgb(0 229 255 / 0.45), 0 0 10px rgb(0 229 255 / 0.25);
     }
 
+    /* Nombre d'entités allumées : creux du voyant et pastille, adaptés à chaque thème */
+    .wrap.skin-ha {
+      --rsc-count-bg: linear-gradient(to bottom, color-mix(in srgb, var(--primary-color, #03a9f4) 62%, #000), var(--primary-color, #03a9f4) 85%);
+      --rsc-count-face: linear-gradient(to bottom, var(--primary-color, #03a9f4), color-mix(in srgb, var(--primary-color, #03a9f4) 78%, #000));
+      --rsc-count-color: var(--text-primary-color, #fff);
+      --rsc-count-shadow: 0 -1px 0 rgb(0 0 0 / 0.35);
+      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.45), inset 0 -1px 1px rgb(255 255 255 / 0.2), 0 1px 0 color-mix(in srgb, var(--card-background-color, #fff) 70%, #fff), 0 -1px 0 rgb(0 0 0 / 0.18);
+      --rsc-badge-shadow: none;
+    }
+    .wrap.skin-glass {
+      --rsc-count-bg: linear-gradient(to bottom, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.92) 80%);
+      --rsc-count-face: linear-gradient(to bottom, #fff, rgb(255 255 255 / 0.82));
+      --rsc-count-color: #1c1f26;
+      --rsc-count-shadow: 0 1px 0 rgb(255 255 255 / 0.85), 0 -1px 0 rgb(0 0 0 / 0.18);
+      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.32), inset 0 -1px 1px #fff, 0 1px 0 rgb(255 255 255 / 0.75), 0 -1px 0 rgb(0 0 0 / 0.14);
+      --rsc-badge-shadow: 0 1px 0 rgb(255 255 255 / 0.8);
+      --rsc-badge-box: 0 0 0 1px rgb(255 255 255 / 0.6), 0 3px 8px rgb(0 0 0 / 0.3), inset 0 1px 0 #fff;
+    }
+    .wrap.skin-neumorph {
+      --rsc-count-bg: var(--rsc-neu);
+      --rsc-count-face: linear-gradient(145deg, color-mix(in srgb, var(--rsc-neu) 78%, #fff), color-mix(in srgb, var(--rsc-neu) 94%, #000));
+      --rsc-count-color: color-mix(in srgb, var(--primary-color, #03a9f4) 70%, var(--primary-text-color, #212121));
+      --rsc-count-shadow: 0 1px 0 var(--rsc-neu-l);
+      --rsc-count-box: inset 2px 2px 5px var(--rsc-neu-d), inset -2px -2px 4px var(--rsc-neu-l);
+      --rsc-badge-shadow: none;
+      --rsc-badge-box: -2px -2px 5px var(--rsc-neu-l), 3px 3px 6px var(--rsc-neu-d), inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0 0 1px color-mix(in srgb, var(--rsc-neu) 85%, #fff);
+    }
+    .wrap.skin-brass {
+      --rsc-count-bg: linear-gradient(to bottom, #140d05, #3d2b12 85%);
+      --rsc-count-face: linear-gradient(to bottom, #f6d892, #b98a3c);
+      --rsc-count-color: #f6d892;
+      --rsc-count-shadow: 0 -1px 0 #000, 0 1px 0 rgb(255 236 190 / 0.18);
+      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.85), inset 0 -1px 1px rgb(246 216 146 / 0.18), 0 1px 0 rgb(255 236 190 / 0.6), 0 -1px 0 rgb(0 0 0 / 0.4);
+      --rsc-badge-color: #2b1d08;
+      --rsc-badge-shadow: 0 1px 0 rgb(255 236 190 / 0.6);
+      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 2px 5px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 248 220 / 0.8), inset 0 -1px 1px rgb(110 79 28 / 0.6);
+    }
+    .wrap.skin-carbon {
+      --rsc-count-bg: linear-gradient(to bottom, #6e130e, #e0332a 85%);
+      --rsc-count-face: linear-gradient(to bottom, #ff5a50, #b3261e);
+      --rsc-count-color: #fff;
+      --rsc-count-shadow: 0 -1px 0 rgb(0 0 0 / 0.6);
+      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.7), inset 0 -1px 1px rgb(255 120 110 / 0.35), 0 1px 0 rgb(255 255 255 / 0.16), 0 -1px 0 #000, 0 0 7px rgb(255 59 48 / 0.35);
+      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 0 9px rgb(255 59 48 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.3);
+    }
+    .wrap.skin-neon {
+      --rsc-count-bg: radial-gradient(ellipse at 50% 30%, #000 30%, #071420);
+      --rsc-count-face: #04060c;
+      --rsc-count-color: #b8f7ff;
+      --rsc-count-shadow: 0 0 5px #00e5ff, 0 0 1px #00e5ff;
+      --rsc-count-box: inset 0 0 0 1px #00e5ff, inset 0 2px 5px rgb(0 0 0 / 0.9), inset 0 0 7px rgb(0 229 255 / 0.45), 0 0 6px rgb(0 229 255 / 0.4);
+      --rsc-badge-shadow: 0 0 6px #00e5ff;
+      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 0 0 3px #00e5ff, 0 0 12px rgb(0 229 255 / 0.55);
+    }
+
     /* =====================================================================
      * ANIMATIONS D'OUVERTURE (open_animation) — classe anim-xxx sur .selector
      * « fan » (éventail) = comportement de base défini plus haut.
@@ -1144,6 +1249,7 @@
       knob_hint: '« Thème Home Assistant » reprend les couleurs du thème actif et change avec lui. Si « réduire les animations » est activé sur l\'appareil, l\'ouverture se fait en fondu.',
 
       sec_center: 'Bouton central', center_hold: 'Appui long sur le bouton central',
+      count_position: 'Nombre d\'entités allumées', cp_knob: 'Dans le voyant du bouton (défaut)', cp_badge: 'Pastille dans le coin',
       c_none: 'Aucune action (défaut)', c_all_off: 'Tout éteindre (entités du cercle)', c_popup: 'Ouvrir une pop-up (#…)',
       c_navigate: 'Aller à une vue / une page', c_scene: 'Activer une scène', c_custom: 'Personnalisée (YAML)',
       center_hint: 'Un appui simple ouvre ou ferme le cercle (ou revient en arrière dans un groupe). « Tout éteindre » concerne les lumières, prises, ventilateurs et interrupteurs virtuels du cercle et de ses groupes.',
@@ -1217,6 +1323,7 @@
       knob_hint: '"Home Assistant theme" uses the colors of the active theme and changes with it. If "reduce motion" is enabled on the device, the dial opens with a fade.',
 
       sec_center: 'Center knob', center_hold: 'Long press on the center knob',
+      count_position: 'Number of entities on', cp_knob: 'Inside the knob indicator (default)', cp_badge: 'Corner badge',
       c_none: 'No action (default)', c_all_off: 'Turn everything off (dial entities)', c_popup: 'Open a pop-up (#…)',
       c_navigate: 'Go to a view / page', c_scene: 'Activate a scene', c_custom: 'Custom (YAML)',
       center_hint: 'A short press opens or closes the dial (or goes back inside a group). "Turn everything off" applies to the lights, switches, fans and input booleans of the dial and its groups.',
@@ -2537,6 +2644,9 @@
       const showCount = c.show_count !== false && count > 0;
       this._badge.textContent = showCount ? String(count) : '';
       this._sel.classList.toggle('count-on', showCount);
+      this._sel.classList.toggle('count-badge', c.count_position === 'badge');
+      this._knob.setAttribute('data-count', showCount ? String(count) : '');
+      this._knob.style.setProperty('--rsc-v-digits', String(showCount ? String(count).length : 1));
 
       const lit = root.map((it, i) => (this._isOn(it) ? i : -1)).filter((i) => i >= 0);
       const showHalo = c.show_halo !== false && lit.length > 0;
@@ -2883,7 +2993,7 @@
   // Options actives par défaut : l'éditeur n'écrit que « false »
   const DEFAULT_TRUE = ['show_brightness', 'show_count', 'show_halo', 'haptics', 'sync_open'];
   // Valeur par défaut des listes : choisir le défaut retire la clé
-  const SELECT_DEFAULTS = { theme: 'auto', card_style: 'border_only', knob_theme: 'metal', open_animation: 'fan', palette: 'rainbow', night_mode: 'off' };
+  const SELECT_DEFAULTS = { theme: 'auto', card_style: 'border_only', knob_theme: 'metal', open_animation: 'fan', palette: 'rainbow', night_mode: 'off', count_position: 'knob' };
   const RANGE_DEFAULTS = { zone_opacity: 80, night_level: 60 };
 
   // Type d'action d'un bouton, pour l'éditeur
@@ -3316,6 +3426,8 @@
               <div class="field"><label>${esc(t('center_hold'))}</label>
                 <select data-field="center_kind" ${cKind === 'custom' ? 'disabled' : ''}>${opts(centerList, cKind)}</select></div>
               ${centerValue}
+              <div class="field"><label>${esc(t('count_position'))}</label>
+                <select data-field="count_position">${opts([['knob', t('cp_knob')], ['badge', t('cp_badge')]], c.count_position === 'badge' ? 'badge' : 'knob')}</select></div>
             </div>
             <div class="hint" style="margin:10px 0 0">${esc(t('center_hint'))}</div>
           </div>
