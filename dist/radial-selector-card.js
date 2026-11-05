@@ -12,7 +12,8 @@
  *     volume (media_player), position (cover), consigne (climate), vitesse (fan), input_number / number
  *   - Appui long sur le bouton central (center_hold_action) : all_off (tout éteindre), pop-up, vue, scène…
  *   - Bouton fermé : nombre d'entités allumées (show_count) dans le voyant du bouton, ou en pastille
- *     dans le coin (count_position: badge), et halo coloré (show_halo)
+ *     dans le coin (count_position: badge), aux couleurs du thème Home Assistant ou au choix
+ *     (count_background, count_color), et halo coloré (show_halo)
  *   - Retour haptique au doigt (haptics), mode nuit (night_mode: sun | entity | always, night_entity, night_level)
  *   - Entités en ligne en dessous (row_items) : style tile/metal, action, couleurs
  *   - Boutons dans les coins (extra_buttons, 4 max) : coin, style, action / pop-up, couleurs
@@ -38,6 +39,11 @@
  *                     Un secteur par entrée, séparé par un trait ; il se remplit de la couleur de
  *                     l'entrée uniquement sous la souris ou le doigt. 0 = jamais rempli (zones toujours
  *                     actives). Appui, appui long et variateur fonctionnent dans toute la zone.
+ * Nombre d'entités allumées (bouton fermé) :
+ *   count_position    knob (défaut : dans le voyant) | badge (pastille dans le coin)
+ *   count_background  couleur du fond (défaut : couleur principale du thème HA)
+ *   count_color       couleur du chiffre (défaut : texte sur couleur principale du thème HA, ou noir / blanc
+ *                     s'il n'est pas lisible ; si seul le fond est choisi : noir ou blanc, le plus lisible)
  * Apparence de la carte :
  *   card_style        border_only (défaut : contour sans fond) | standard (fond + contour)
  *                     | background_only (fond sans contour) | transparent (ni fond ni contour)
@@ -87,6 +93,41 @@
   // Valeur CSS de couleur sûre pour un attribut style (pas de ; ni de guillemets)
   const cssColor = (v) => String(v ?? '').replace(/[;"'<>{}]/g, '').trim();
 
+  // Lit une couleur CSS (hex, rgb, hsl, nom…) : [r, g, b], ou null si elle n'est pas lisible (ex. var(--x))
+  const colorRgb = (v) => {
+    const c = String(v ?? '').trim();
+    if (!c) return null;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      // Une couleur refusée laisse la précédente : deux essais différents la révèlent
+      ctx.fillStyle = '#000';
+      ctx.fillStyle = c;
+      const a = ctx.fillStyle;
+      ctx.fillStyle = '#fff';
+      ctx.fillStyle = c;
+      if (a !== ctx.fillStyle) return null;
+      ctx.fillRect(0, 0, 1, 1);
+      return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+    } catch (e) { return null; }
+  };
+
+  // Luminance relative (WCAG) ; au-dessus de 0,179, le noir est plus lisible que le blanc
+  const luminance = (rgb) => {
+    const [r, g, b] = rgb.map((x) => { const u = x / 255; return u <= 0.03928 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const isLightColor = (rgb) => luminance(rgb) > 0.179;
+  const contrast = (a, b) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  // En dessous, la couleur de texte du thème n'est plus lisible sur sa couleur principale
+  // (le bleu par défaut de Home Assistant avec du blanc est à 2,6)
+  const MIN_COUNT_CONTRAST = 2.5;
+
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
@@ -119,6 +160,12 @@
       --rsc-on-lightness: 42%;
       --rsc-accent-off: hsl(267 16% 43%);
       --rsc-accent-off-darker: hsl(258 29% 39%);
+      /* Nombre d'entités allumées : couleurs du thème HA, remplacées par count_background / count_color */
+      --rsc-count-tint: var(--primary-color, #03a9f4);
+      --rsc-count-ink: var(--text-primary-color, #fff);
+      --rsc-count-bg: linear-gradient(to bottom, color-mix(in srgb, var(--rsc-count-tint) 78%, #000), var(--rsc-count-tint) 80%);
+      --rsc-count-face: linear-gradient(to bottom, var(--rsc-count-tint), color-mix(in srgb, var(--rsc-count-tint) 82%, #000));
+      --rsc-count-color: var(--rsc-count-ink);
       --rsc-cubic: cubic-bezier(0.44, -0.9, 0.31, 1.55);
       --rsc-shadow:
         rgba(0, 0, 0, 0.125) 0px 0px 2px -0.5px,
@@ -261,8 +308,9 @@
     /* Bouton fermé avec des entités allumées : le voyant s'élargit en un petit bouton légèrement
        enfoncé dans la face, le nombre incrusté dedans. Les chiffres restent droits quelle que soit
        l'orientation du bouton (contre-rotation).
-       Par thème : --rsc-count-bg (creux), --rsc-count-color, --rsc-count-shadow (incrustation),
-       --rsc-count-box (biseau du creux) ; pastille : --rsc-count-face, --rsc-badge-color, --rsc-badge-box */
+       Couleurs : --rsc-count-tint (fond) et --rsc-count-ink (chiffre), thème HA ou choix de l'utilisateur.
+       Par thème du bouton : --rsc-count-shadow (incrustation), --rsc-count-box (biseau du creux),
+       --rsc-badge-shadow et --rsc-badge-box (pastille) */
     .selector.count-on:not(.active):not(.count-badge) .knob::after {
       --rsc-v-h: max(16px, calc(var(--radius) * 0.21));
       --rsc-v-rot: calc(-1 * var(--rsc-knob-rot, calc(var(--rsc-knob-angle, var(--rsc-angle)) + var(--rsc-angle-offset))));
@@ -273,10 +321,9 @@
       top: calc(var(--radius) * 0.2 - var(--rsc-v-h) / 2);
       padding-top: 1px;
       font-size: max(9px, calc(var(--radius) * 0.118));
-      color: var(--rsc-count-color, rgb(255 255 255 / 0.96));
+      color: var(--rsc-count-color);
       text-shadow: var(--rsc-count-shadow, 0 -1px 0 rgb(0 0 0 / 0.55), 0 1px 0 rgb(255 255 255 / 0.12));
-      background: var(--rsc-count-bg,
-        linear-gradient(to bottom, color-mix(in srgb, var(--rsc-accent-off-darker) 62%, #000), var(--rsc-accent-off) 85%));
+      background: var(--rsc-count-bg);
       box-shadow: var(--rsc-count-box,
         inset 0 2px 4px rgb(0 0 0 / 0.6),
         inset 0 -1px 1px rgb(255 255 255 / 0.16),
@@ -701,9 +748,9 @@
       place-items: center;
       font: 700 max(10px, calc(var(--radius) * 0.12)) / 1 Roboto, "Segoe UI", sans-serif;
       font-variant-numeric: tabular-nums;
-      color: var(--rsc-badge-color, var(--rsc-count-color, #fff));
+      color: var(--rsc-count-color);
       text-shadow: var(--rsc-badge-shadow, 0 1px 1px rgb(0 0 0 / 0.45));
-      background: var(--rsc-badge-bg, var(--rsc-count-face, var(--rsc-knob-color)));
+      background: var(--rsc-count-face);
       box-shadow: var(--rsc-badge-box,
         0 0 0 2px var(--rsc-outer-bg),
         0 2px 5px rgb(0 0 0 / 0.4),
@@ -1070,59 +1117,39 @@
       --rsc-xbtn-shadow: 0 0 0 1px rgb(0 229 255 / 0.45), 0 0 10px rgb(0 229 255 / 0.25);
     }
 
-    /* Nombre d'entités allumées : creux du voyant et pastille, adaptés à chaque thème */
+    /* Nombre d'entités allumées : les couleurs suivent le thème HA (ou le choix de l'utilisateur),
+       le relief du creux et de la pastille reste adapté à chaque thème du bouton */
     .wrap.skin-ha {
-      --rsc-count-bg: linear-gradient(to bottom, color-mix(in srgb, var(--primary-color, #03a9f4) 62%, #000), var(--primary-color, #03a9f4) 85%);
-      --rsc-count-face: linear-gradient(to bottom, var(--primary-color, #03a9f4), color-mix(in srgb, var(--primary-color, #03a9f4) 78%, #000));
-      --rsc-count-color: var(--text-primary-color, #fff);
       --rsc-count-shadow: 0 -1px 0 rgb(0 0 0 / 0.35);
       --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.45), inset 0 -1px 1px rgb(255 255 255 / 0.2), 0 1px 0 color-mix(in srgb, var(--card-background-color, #fff) 70%, #fff), 0 -1px 0 rgb(0 0 0 / 0.18);
       --rsc-badge-shadow: none;
     }
     .wrap.skin-glass {
-      --rsc-count-bg: linear-gradient(to bottom, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.92) 80%);
-      --rsc-count-face: linear-gradient(to bottom, #fff, rgb(255 255 255 / 0.82));
-      --rsc-count-color: #1c1f26;
-      --rsc-count-shadow: 0 1px 0 rgb(255 255 255 / 0.85), 0 -1px 0 rgb(0 0 0 / 0.18);
-      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.32), inset 0 -1px 1px #fff, 0 1px 0 rgb(255 255 255 / 0.75), 0 -1px 0 rgb(0 0 0 / 0.14);
-      --rsc-badge-shadow: 0 1px 0 rgb(255 255 255 / 0.8);
-      --rsc-badge-box: 0 0 0 1px rgb(255 255 255 / 0.6), 0 3px 8px rgb(0 0 0 / 0.3), inset 0 1px 0 #fff;
+      --rsc-count-shadow: 0 -1px 0 rgb(0 0 0 / 0.3);
+      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.32), inset 0 -1px 1px rgb(255 255 255 / 0.5), 0 1px 0 rgb(255 255 255 / 0.75), 0 -1px 0 rgb(0 0 0 / 0.14);
+      --rsc-badge-box: 0 0 0 1px rgb(255 255 255 / 0.6), 0 3px 8px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.5);
     }
     .wrap.skin-neumorph {
-      --rsc-count-bg: var(--rsc-neu);
-      --rsc-count-face: linear-gradient(145deg, color-mix(in srgb, var(--rsc-neu) 78%, #fff), color-mix(in srgb, var(--rsc-neu) 94%, #000));
-      --rsc-count-color: color-mix(in srgb, var(--primary-color, #03a9f4) 70%, var(--primary-text-color, #212121));
-      --rsc-count-shadow: 0 1px 0 var(--rsc-neu-l);
+      --rsc-count-shadow: none;
       --rsc-count-box: inset 2px 2px 5px var(--rsc-neu-d), inset -2px -2px 4px var(--rsc-neu-l);
       --rsc-badge-shadow: none;
       --rsc-badge-box: -2px -2px 5px var(--rsc-neu-l), 3px 3px 6px var(--rsc-neu-d), inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0 0 1px color-mix(in srgb, var(--rsc-neu) 85%, #fff);
     }
     .wrap.skin-brass {
-      --rsc-count-bg: linear-gradient(to bottom, #140d05, #3d2b12 85%);
-      --rsc-count-face: linear-gradient(to bottom, #f6d892, #b98a3c);
-      --rsc-count-color: #f6d892;
-      --rsc-count-shadow: 0 -1px 0 #000, 0 1px 0 rgb(255 236 190 / 0.18);
-      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.85), inset 0 -1px 1px rgb(246 216 146 / 0.18), 0 1px 0 rgb(255 236 190 / 0.6), 0 -1px 0 rgb(0 0 0 / 0.4);
-      --rsc-badge-color: #2b1d08;
-      --rsc-badge-shadow: 0 1px 0 rgb(255 236 190 / 0.6);
-      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 2px 5px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 248 220 / 0.8), inset 0 -1px 1px rgb(110 79 28 / 0.6);
+      --rsc-count-shadow: 0 -1px 0 rgb(0 0 0 / 0.5);
+      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.7), inset 0 -1px 1px rgb(246 216 146 / 0.18), 0 1px 0 rgb(255 236 190 / 0.6), 0 -1px 0 rgb(0 0 0 / 0.4);
+      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 2px 5px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 248 220 / 0.5), inset 0 -1px 1px rgb(110 79 28 / 0.6);
     }
     .wrap.skin-carbon {
-      --rsc-count-bg: linear-gradient(to bottom, #6e130e, #e0332a 85%);
-      --rsc-count-face: linear-gradient(to bottom, #ff5a50, #b3261e);
-      --rsc-count-color: #fff;
       --rsc-count-shadow: 0 -1px 0 rgb(0 0 0 / 0.6);
-      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.7), inset 0 -1px 1px rgb(255 120 110 / 0.35), 0 1px 0 rgb(255 255 255 / 0.16), 0 -1px 0 #000, 0 0 7px rgb(255 59 48 / 0.35);
-      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 0 9px rgb(255 59 48 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.3);
+      --rsc-count-box: inset 0 2px 3px rgb(0 0 0 / 0.7), inset 0 -1px 1px rgb(255 255 255 / 0.18), 0 1px 0 rgb(255 255 255 / 0.16), 0 -1px 0 #000, 0 0 7px color-mix(in srgb, var(--rsc-count-tint) 35%, transparent);
+      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 0 9px color-mix(in srgb, var(--rsc-count-tint) 50%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.3);
     }
     .wrap.skin-neon {
-      --rsc-count-bg: radial-gradient(ellipse at 50% 30%, #000 30%, #071420);
-      --rsc-count-face: #04060c;
-      --rsc-count-color: #b8f7ff;
-      --rsc-count-shadow: 0 0 5px #00e5ff, 0 0 1px #00e5ff;
-      --rsc-count-box: inset 0 0 0 1px #00e5ff, inset 0 2px 5px rgb(0 0 0 / 0.9), inset 0 0 7px rgb(0 229 255 / 0.45), 0 0 6px rgb(0 229 255 / 0.4);
-      --rsc-badge-shadow: 0 0 6px #00e5ff;
-      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 0 0 3px #00e5ff, 0 0 12px rgb(0 229 255 / 0.55);
+      --rsc-count-shadow: 0 0 4px color-mix(in srgb, var(--rsc-count-ink) 60%, transparent);
+      --rsc-count-box: inset 0 0 0 1px color-mix(in srgb, var(--rsc-count-tint) 70%, #fff), inset 0 2px 5px rgb(0 0 0 / 0.4), 0 0 6px color-mix(in srgb, var(--rsc-count-tint) 40%, transparent);
+      --rsc-badge-shadow: 0 0 4px color-mix(in srgb, var(--rsc-count-ink) 60%, transparent);
+      --rsc-badge-box: 0 0 0 2px var(--rsc-outer-bg), 0 0 0 3px var(--rsc-count-tint), 0 0 12px color-mix(in srgb, var(--rsc-count-tint) 55%, transparent);
     }
 
     /* =====================================================================
@@ -1250,6 +1277,8 @@
 
       sec_center: 'Bouton central', center_hold: 'Appui long sur le bouton central',
       count_position: 'Nombre d\'entités allumées', cp_knob: 'Dans le voyant du bouton (défaut)', cp_badge: 'Pastille dans le coin',
+      count_background: 'Fond du nombre', count_color: 'Couleur du chiffre',
+      count_hint: 'Vides, ces deux couleurs suivent le thème Home Assistant actif (couleur principale et son texte). Sans couleur de chiffre, celui-ci passe en noir ou en blanc si le texte du thème est peu lisible, ou si seul le fond est choisi.',
       c_none: 'Aucune action (défaut)', c_all_off: 'Tout éteindre (entités du cercle)', c_popup: 'Ouvrir une pop-up (#…)',
       c_navigate: 'Aller à une vue / une page', c_scene: 'Activer une scène', c_custom: 'Personnalisée (YAML)',
       center_hint: 'Un appui simple ouvre ou ferme le cercle (ou revient en arrière dans un groupe). « Tout éteindre » concerne les lumières, prises, ventilateurs et interrupteurs virtuels du cercle et de ses groupes.',
@@ -1324,6 +1353,8 @@
 
       sec_center: 'Center knob', center_hold: 'Long press on the center knob',
       count_position: 'Number of entities on', cp_knob: 'Inside the knob indicator (default)', cp_badge: 'Corner badge',
+      count_background: 'Number background', count_color: 'Digit color',
+      count_hint: 'Left empty, both colors follow the active Home Assistant theme (primary color and its text). Without a digit color, the digit turns black or white if the theme\'s text is hard to read, or if only the background is set.',
       c_none: 'No action (default)', c_all_off: 'Turn everything off (dial entities)', c_popup: 'Open a pop-up (#…)',
       c_navigate: 'Go to a view / page', c_scene: 'Activate a scene', c_custom: 'Custom (YAML)',
       center_hint: 'A short press opens or closes the dial (or goes back inside a group). "Turn everything off" applies to the lights, switches, fans and input booleans of the dial and its groups.',
@@ -1477,7 +1508,10 @@
       this._uid = Math.random().toString(36).slice(2, 8);
     }
 
-    connectedCallback() { if (this._open) this._armClose(); }
+    connectedCallback() {
+      if (this._open) this._armClose();
+      this._refreshCountInk();
+    }
     disconnectedCallback() { clearTimeout(this._closeTimer); this._closeTimer = null; }
 
     _t(key, vars) { return tr(langOf(this._hass), key, vars); }
@@ -1645,7 +1679,7 @@
       this.shadowRoot.innerHTML = `
         <style>${CARD_STYLES}</style>
         <ha-card style="${this._cardStyle()}">
-          <div class="wrap skin-${this._skin()}">
+          <div class="wrap skin-${this._skin()}" style="${this._countStyle()}">
             <div class="stage"${stageStyle}>
               <div class="selector anim-${this._anim()}">
                 <div class="halo" aria-hidden="true"><div class="halo-glow"></div><div class="halo-ring"></div></div>
@@ -1666,6 +1700,7 @@
 
       const root = this.shadowRoot;
       this._wrap = root.querySelector('.wrap');
+      this._countKey = null;
       this._sel = root.querySelector('.selector');
       this._knob = root.querySelector('.knob');
       this._label = root.querySelector('.label');
@@ -2380,6 +2415,42 @@
       return v.join(';');
     }
 
+    // Couleurs choisies pour le nombre d'entités allumées ; rien de choisi = thème HA (voir CARD_STYLES)
+    _countStyle() {
+      const c = this._config;
+      const v = [];
+      if (c.count_background) v.push(`--rsc-count-tint:${cssColor(c.count_background)}`);
+      if (c.count_color) v.push(`--rsc-count-ink:${cssColor(c.count_color)}`);
+      return v.join(';');
+    }
+
+    // Chiffre sans couleur choisie : texte du thème s'il reste lisible, sinon noir ou blanc.
+    // Lit les couleurs réelles : le thème peut changer à tout moment.
+    _refreshCountInk() {
+      if (!this._wrap || !this.isConnected) return;
+      const c = this._config;
+      const cs = getComputedStyle(this._wrap);
+      const tint = cs.getPropertyValue('--rsc-count-tint');
+      const themeInk = cs.getPropertyValue('--text-primary-color') || '#fff';
+      const key = `${tint}|${themeInk}|${c.count_color || ''}`;
+      if (key === this._countKey) return;
+      this._countKey = key;
+      const style = this._wrap.style;
+      if (!c.count_color) {
+        const bg = colorRgb(tint);
+        const theme = colorRgb(themeInk);
+        const unreadable = bg && (c.count_background || !theme || contrast(bg, theme) < MIN_COUNT_CONTRAST);
+        if (unreadable) style.setProperty('--rsc-count-ink', isLightColor(bg) ? '#14171c' : '#ffffff');
+        else style.removeProperty('--rsc-count-ink');
+      }
+      // Chiffre foncé : incrustation claire plutôt que sombre
+      const ink = colorRgb(cs.getPropertyValue('--rsc-count-ink'));
+      ['--rsc-count-shadow', '--rsc-badge-shadow'].forEach((name) => {
+        if (ink && !isLightColor(ink)) style.setProperty(name, '0 1px 0 rgb(255 255 255 / 0.35)');
+        else style.removeProperty(name);
+      });
+    }
+
     _setHover(i) {
       this._hover = i;
       this._refreshHot();
@@ -2658,6 +2729,7 @@
       this._sel.classList.toggle('count-on', showCount);
       this._sel.classList.toggle('count-badge', c.count_position === 'badge');
       this._knob.setAttribute('data-count', showCount ? String(count) : '');
+      this._refreshCountInk();
       this._knob.style.setProperty('--rsc-v-digits', String(showCount ? String(count).length : 1));
 
       const lit = root.map((it, i) => (this._isOn(it) ? i : -1)).filter((i) => i >= 0);
@@ -3056,6 +3128,17 @@
 
     _t(key, vars) { return tr(this._lang, key, vars); }
 
+    connectedCallback() {
+      // Les couleurs du thème ne sont lisibles qu'une fois l'éditeur dans la page
+      if (this._config && this.shadowRoot.querySelector('.editor-wrap')) this._render();
+    }
+
+    // Couleur d'une variable du thème actif, au format du sélecteur de couleur natif
+    _themeHex(name, fallback) {
+      const rgb = colorRgb(getComputedStyle(this).getPropertyValue(name));
+      return rgb ? `#${rgb.map((x) => x.toString(16).padStart(2, '0')).join('')}` : fallback;
+    }
+
     setConfig(config) {
       // Copie complète : aucune clé n'est perdue
       const cfg = JSON.parse(JSON.stringify(config || {}));
@@ -3440,8 +3523,11 @@
               ${centerValue}
               <div class="field"><label>${esc(t('count_position'))}</label>
                 <select data-field="count_position">${opts([['knob', t('cp_knob')], ['badge', t('cp_badge')]], c.count_position === 'badge' ? 'badge' : 'knob')}</select></div>
+              ${this._colorField('count_background', c.count_background, t('count_background'), this._themeHex('--primary-color', '#03a9f4'), t('theme_ha'))}
+              ${this._colorField('count_color', c.count_color, t('count_color'), this._themeHex('--text-primary-color', '#ffffff'), t('theme_ha'))}
             </div>
             <div class="hint" style="margin:10px 0 0">${esc(t('center_hint'))}</div>
+            <div class="hint" style="margin:6px 0 0">${esc(t('count_hint'))}</div>
           </div>
 
           <div class="section" data-list="__top" data-idx="0">

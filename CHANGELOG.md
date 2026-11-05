@@ -4,6 +4,24 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.4.0] — 2026-11-04
+
+### Ajouté
+- **Couleurs du nombre d'entités allumées** : nouvelles options **`count_background`** (fond) et **`count_color`** (chiffre), réglables dans l'éditeur, section « Bouton central », pour le voyant comme pour la pastille. L'option `count_position` ne change pas.
+
+### Modifié
+- **Le thème Home Assistant devient le défaut** : sans réglage, le fond prend la couleur principale du thème actif (`--primary-color`) et le chiffre sa couleur de texte (`--text-primary-color`), quel que soit le thème du bouton, et suivent le thème quand il change. Chaque thème du bouton garde son relief. Les couleurs propres aux thèmes laiton, carbone, néon, etc. ne sont donc plus appliquées d'office : elles se retrouvent en les choisissant dans les options.
+- **Chiffre toujours lisible** : sans couleur de chiffre choisie, celui-ci passe en noir ou en blanc si le texte du thème est peu lisible sur sa couleur principale (contraste inférieur à 2,5), ou si seul le fond est choisi.
+
+#### English
+
+##### Added
+- **Colors of the number of entities on**: new **`count_background`** (background) and **`count_color`** (digit) options, available in the editor, "Center knob" section, for both the indicator and the badge. The `count_position` option is unchanged.
+
+##### Changed
+- **The Home Assistant theme is now the default**: with nothing set, the background uses the active theme's primary color (`--primary-color`) and the digit its text color (`--text-primary-color`), whatever the knob theme, and they follow the theme when it changes. Each knob theme keeps its own relief. The colors specific to the brass, carbon, neon… themes are therefore no longer applied automatically: pick them in the options to get them back.
+- **Always readable digit**: without a chosen digit color, the digit turns black or white if the theme's text is hard to read on its primary color (contrast below 2.5), or if only the background is set.
+
 ## [1.3.1] — 2026-11-04
 
 ### Corrigé
@@ -108,6 +126,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.4.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.4.0
 [1.3.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.3.1
 [1.3.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.3.0
 [1.2.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.2.1
