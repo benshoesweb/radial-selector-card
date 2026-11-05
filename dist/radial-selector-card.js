@@ -18,7 +18,8 @@
  *   - Retour haptique au doigt (haptics), mode nuit (night_mode: sun | entity | always, night_entity, night_level)
  *   - Entités en ligne en dessous (row_items) : style tile/metal, action, couleurs
  *   - Boutons dans les coins (extra_buttons, 4 max) : coin, style, action / pop-up, couleurs
- *   - Nom de la carte : en titre en haut (show_title) et / ou sous le cercle fermé (show_label)
+ *   - Nom de la carte : en titre standard de Home Assistant (show_title, en-tête de ha-card)
+ *     et / ou sous le cercle fermé (show_label)
  *   - Réduction automatique (auto_close)
  *   - Jumeau d'un bouton rotatif physique (sync_entity : input_text / input_select partagé avec le
  *     blueprint blueprints/radial_knob_twin.yaml) : la carte s'ouvre et pointe l'entrée choisie au
@@ -215,18 +216,6 @@
     }
     @supports (width: 1cqw) {
       .stage { --radius: min(calc(100cqw / 2.8), 150px); }
-    }
-
-    /* Titre de la carte (show_title) : le nom, toujours visible en haut */
-    .title {
-      padding: 4px 16px 2px;
-      font-size: 15px;
-      font-weight: 500;
-      line-height: 1.4;
-      color: var(--primary-text-color);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .label {
@@ -1710,9 +1699,8 @@
 
       this.shadowRoot.innerHTML = `
         <style>${CARD_STYLES}</style>
-        <ha-card style="${this._cardStyle()}">
+        <ha-card style="${this._cardStyle()}"${this._hasTitle() ? ` header="${esc(c.name)}"` : ''}>
           <div class="wrap skin-${this._skin()}" style="${this._countStyle()}">
-            ${this._hasTitle() ? `<div class="title">${esc(c.name)}</div>` : ''}
             <div class="stage"${stageStyle}>
               <div class="selector anim-${this._anim()}">
                 <div class="halo" aria-hidden="true"><div class="halo-glow"></div><div class="halo-ring"></div></div>

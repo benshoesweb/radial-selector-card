@@ -9,12 +9,16 @@ module.exports = async (browser, h) => {
     const read = () => page.evaluate(() => {
       const el = document.getElementById('a');
       const s = el.shadowRoot;
-      const title = s.querySelector('.title');
+      // Titre standard de Home Assistant : attribut « header » de ha-card, rendu en <h1 class="card-header">
+      const card = s.querySelector('ha-card');
+      const title = card.shadowRoot.querySelector('h1.card-header');
       const label = s.querySelector('.label');
       return {
-        title: title ? title.textContent : null,
-        titleShown: !!title && getComputedStyle(title).display !== 'none',
-        titleFirst: !!title && title.nextElementSibling === s.querySelector('.stage'),
+        title: card.hasAttribute('header') ? card.getAttribute('header') : null,
+        titleShown: !!title && getComputedStyle(title).display !== 'none' && title.textContent === card.getAttribute('header'),
+        titleFirst: !!title && title.nextElementSibling && title.nextElementSibling.tagName === 'SLOT',
+        ownTitle: !!s.querySelector('.title'),
+        titleSize: title ? getComputedStyle(title).fontSize : null,
         label: label.textContent, labelShown: getComputedStyle(label).display !== 'none',
         rows: el.getGridOptions().rows, size: el.getCardSize(),
       };
@@ -26,7 +30,18 @@ module.exports = async (browser, h) => {
 
     await page.evaluate(() => window.mk('a', { name: 'Mon salon', auto_close: 0, show_title: true }));
     const on = await read();
-    check('show_title : le nom en titre, au-dessus du cercle', on.title === 'Mon salon' && on.titleShown && on.titleFirst, on);
+    check('show_title : le nom en titre standard de Home Assistant (en-tête de ha-card), au-dessus du cercle', on.title === 'Mon salon' && on.titleShown && on.titleFirst && !on.ownTitle, on);
+    check('… avec le style et les variables de thème des cartes HA (--ha-card-header-font-size)', on.titleSize === '24px', on);
+    const themed = await page.evaluate(() => {
+      const el = document.getElementById('a');
+      el.style.setProperty('--ha-card-header-font-size', '20px');
+      el.style.setProperty('--ha-card-header-color', 'rgb(1, 2, 3)');
+      const h1 = el.shadowRoot.querySelector('ha-card').shadowRoot.querySelector('h1.card-header');
+      const r = { size: getComputedStyle(h1).fontSize, color: getComputedStyle(h1).color };
+      el.style.removeProperty('--ha-card-header-font-size'); el.style.removeProperty('--ha-card-header-color');
+      return r;
+    });
+    check('… le titre suit les variables du thème (taille, couleur)', themed.size === '20px' && themed.color === 'rgb(1, 2, 3)', themed);
     check('… une ligne de plus dans la grille', on.rows === 5 && on.size === 5, on);
     await page.evaluate(() => document.getElementById('a')._toggle());
     const open = await read();

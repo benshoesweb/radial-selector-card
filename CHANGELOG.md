@@ -4,6 +4,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.6.1] — 2026-11-05
+
+### Modifié
+- **Titre de la carte** : le nom affiché avec « Afficher le nom en titre en haut de la carte » (`show_title`) utilise maintenant le **titre standard des cartes Home Assistant** (l'en-tête de la carte), au lieu d'un titre propre à la carte. Il a la même taille, les mêmes marges et la même police que les autres cartes du tableau de bord, et suit les variables du thème (`--ha-card-header-font-size`, `--ha-card-header-color`, `--ha-card-header-font-family`). Le titre est plus grand qu'avant : la carte demande une ligne de plus dans la grille.
+- 2 vérifications automatiques de plus (237 au total).
+
+#### English
+
+##### Changed
+- **Card title**: the name shown with "Show the name as a title at the top of the card" (`show_title`) now uses **Home Assistant's standard card title** (the card header) instead of a title of its own. It has the same size, spacing and font as the other cards on the dashboard, and follows the theme variables (`--ha-card-header-font-size`, `--ha-card-header-color`, `--ha-card-header-font-family`). The title is larger than before: the card asks for one more row in the grid.
+- 2 more automated checks (237 in total).
+
 ## [1.6.0] — 2026-11-05
 
 ### Ajouté
@@ -170,6 +182,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.6.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.6.1
 [1.6.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.6.0
 [1.5.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.5.0
 [1.4.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.4.1
