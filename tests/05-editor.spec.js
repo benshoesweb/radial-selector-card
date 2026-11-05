@@ -249,6 +249,25 @@ module.exports = async (browser, h) => {
     });
     check('éditeur créé avant d\'entrer dans la page : couleur du thème lue à l\'arrivée', lateTheme === '#ff5722', lateTheme);
   }
+  group('Éditeur : fond des champs');
+  {
+    await setup(page, 'fr');
+    const bg = await page.evaluate(() => {
+      const host = document.getElementById('host');
+      const read = () => [...window.ed.shadowRoot.querySelectorAll('.field input[type="text"], .field input[type="number"], .field select')]
+        .map((el) => { const cs = getComputedStyle(el); return `${cs.backgroundImage}|${cs.backgroundColor}`; });
+      // Thème avec un fond de tableau de bord en dégradé (ex. « aurore boréale ») et une couleur de champ
+      host.style.cssText = 'width:620px;--lovelace-background:radial-gradient(60% 28% at 78% 6%, rgba(143,188,187,.55), transparent 70%) fixed, #262b35;--input-fill-color:#353c4a;--secondary-background-color:#e5e9f0';
+      const themed = read();
+      // Sans --input-fill-color : couleur secondaire du thème
+      host.style.removeProperty('--input-fill-color');
+      const fallback = read();
+      host.style.cssText = 'width:620px';
+      return { n: themed.length, themed: [...new Set(themed)], fallback: [...new Set(fallback)] };
+    });
+    check('champs et listes : jamais l\'image de fond du tableau de bord, couleur de champ du thème', bg.n > 5 && bg.themed.length === 1 && bg.themed[0] === 'none|rgb(53, 60, 74)', bg);
+    check('… à défaut, couleur secondaire du thème', bg.fallback.length === 1 && bg.fallback[0] === 'none|rgb(229, 233, 240)', bg);
+  }
   check('éditeur : aucune erreur JS', t.errors.length === 0, t.errors);
   await t.close();
 };

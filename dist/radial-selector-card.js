@@ -2951,7 +2951,9 @@
       padding: 10px 12px;
       border-radius: 8px;
       border: 1px solid var(--divider-color, #ccc);
-      background: var(--lovelace-background, var(--primary-background-color, #fff));
+      /* Couleur de remplissage des champs du thème (comme les champs natifs de Home Assistant),
+         jamais le fond du tableau de bord (--lovelace-background peut être une image ou un dégradé) */
+      background: var(--input-fill-color, var(--mdc-text-field-fill-color, var(--secondary-background-color, #f5f5f5)));
       color: var(--primary-text-color);
       font-size: 14px;
       box-sizing: border-box;
