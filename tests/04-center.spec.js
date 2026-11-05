@@ -49,23 +49,64 @@ module.exports = async (browser, h) => {
     await page.waitForTimeout(600);
     const bd = await read();
     check('count_position: badge : ancienne pastille, voyant normal', bd.count && bd.text === '2' && bd.badgeOp > 0.99 && bd.vw < 10, bd);
-    // Pastille aux couleurs du thème, voyant en creux avec le chiffre incrusté
-    const themed = await page.evaluate((items) => {
-      const out = {};
-      ['metal', 'brass', 'carbon', 'neon'].forEach((skin) => {
-        const el = window.mk('a', { knob_theme: skin, count_position: 'badge' }, items);
-        const bs = getComputedStyle(el.shadowRoot.querySelector('.badge'));
-        out[skin] = { bg: bs.backgroundImage + bs.backgroundColor, color: bs.color };
-      });
-      const el = window.mk('a', { knob_theme: 'metal' }, items);
-      const v = getComputedStyle(el.shadowRoot.querySelector('.knob'), '::after');
-      out.recess = v.boxShadow;
-      out.emboss = v.textShadow;
-      return out;
+    // Couleurs du nombre : thème Home Assistant par défaut, quel que soit le thème du bouton
+    const SKINS = ['metal', 'ha', 'glass', 'neumorph', 'brass', 'carbon', 'neon'];
+    const paint = (cfg) => page.evaluate(({ items, cfg }) => {
+      const el = window.mk('a', { auto_close: 0, ...cfg }, items);
+      const s = el.shadowRoot;
+      const bs = getComputedStyle(s.querySelector('.badge'));
+      const v = getComputedStyle(s.querySelector('.knob'), '::after');
+      return { badgeBg: bs.backgroundImage, badgeColor: bs.color, badgeBox: bs.boxShadow, knobBg: v.backgroundImage, knobColor: v.color, knobBox: v.boxShadow, knobShadow: v.textShadow, count: s.querySelector('.selector').classList.contains('count-badge') };
+    }, { items: ITEMS, cfg });
+    const BLUE = 'rgb(3, 169, 244)';
+    const def = {};
+    for (const skin of SKINS) def[skin] = { knob: await paint({ knob_theme: skin }), badge: await paint({ knob_theme: skin, count_position: 'badge' }) };
+    await page.waitForTimeout(500);
+    for (const skin of SKINS) def[skin] = { knob: await paint({ knob_theme: skin }), badge: await paint({ knob_theme: skin, count_position: 'badge' }) };
+    check('par défaut, voyant et pastille prennent la couleur principale du thème HA (7 thèmes du bouton)', SKINS.every((k) => def[k].knob.knobBg.includes(BLUE) && def[k].badge.badgeBg.includes(BLUE)), def);
+    check('par défaut, le chiffre prend la couleur de texte du thème HA (7 thèmes du bouton)', SKINS.every((k) => def[k].knob.knobColor === 'rgb(255, 255, 255)' && def[k].badge.badgeColor === 'rgb(255, 255, 255)'), def);
+    check('voyant : petit bouton enfoncé (ombre intérieure) et chiffre incrusté', /inset/.test(def.metal.knob.knobBox) && def.metal.knob.knobShadow !== 'none', def.metal);
+    check('le relief reste propre à chaque thème du bouton', new Set(SKINS.map((k) => def[k].knob.knobBox)).size === 7, SKINS.map((k) => def[k].knob.knobBox));
+    await page.evaluate(() => { document.body.style.setProperty('--primary-color', '#ff5722'); document.body.style.setProperty('--text-primary-color', '#101010'); });
+    await page.waitForTimeout(500);
+    const live = await paint({ knob_theme: 'metal' });
+    check('changement de thème HA : les couleurs suivent, sans réglage', live.knobBg.includes('rgb(255, 87, 34)') && live.knobColor === 'rgb(16, 16, 16)', live);
+    // Thème dont le texte est illisible sur la couleur principale (Nordic sombre) : chiffre foncé
+    await page.evaluate(() => { document.body.style.setProperty('--frost', '#8fbcbb'); document.body.style.setProperty('--primary-color', 'var(--frost)'); document.body.style.setProperty('--text-primary-color', '#eceff4'); });
+    await paint({ knob_theme: 'metal' });
+    await page.waitForTimeout(500);
+    const nordic = await paint({ knob_theme: 'metal' });
+    check('texte du thème peu lisible sur sa couleur principale : chiffre foncé, fond du thème conservé', nordic.knobBg.includes('rgb(143, 188, 187)') && nordic.knobColor === 'rgb(20, 23, 28)', nordic);
+    await page.evaluate(() => { document.body.style.setProperty('--primary-color', '#5e35b1'); window.setState('light.salon', 'on'); });
+    await page.waitForTimeout(500);
+    const after = await paint({ knob_theme: 'metal' });
+    check('… et le texte du thème revient dès qu\'il redevient lisible', after.knobColor === 'rgb(236, 239, 244)', after);
+    await page.evaluate(() => ['--frost', '--primary-color', '--text-primary-color'].forEach((k) => document.body.style.removeProperty(k)));
+    for (const position of ['knob', 'badge']) {
+      await paint({ count_background: '#7b1fa2', count_color: '#ffeb3b', count_position: position });
+      await page.waitForTimeout(500);
+      const c = await paint({ count_background: '#7b1fa2', count_color: '#ffeb3b', count_position: position });
+      const bg = position === 'badge' ? c.badgeBg : c.knobBg;
+      const ink = position === 'badge' ? c.badgeColor : c.knobColor;
+      check(`couleurs choisies, position ${position} : fond et chiffre appliqués, position conservée`, bg.includes('rgb(123, 31, 162)') && ink === 'rgb(255, 235, 59)' && c.count === (position === 'badge'), c);
+    }
+    await paint({ count_background: '#ffeb3b' });
+    await page.waitForTimeout(500);
+    const pale = await paint({ count_background: '#ffeb3b' });
+    await paint({ count_background: '#311b92' });
+    await page.waitForTimeout(500);
+    const deep = await paint({ count_background: '#311b92' });
+    check('fond seul : chiffre foncé sur fond clair, blanc sur fond foncé', pale.knobColor === 'rgb(20, 23, 28)' && deep.knobColor === 'rgb(255, 255, 255)', { pale, deep });
+    check('chiffre foncé : incrustation claire', /rgba\(255, 255, 255/.test(pale.knobShadow), pale.knobShadow);
+    await paint({ count_color: '#ff0000' });
+    await page.waitForTimeout(500);
+    const inkOnly = await paint({ count_color: '#ff0000' });
+    check('chiffre seul : le fond reste celui du thème HA', inkOnly.knobBg.includes(BLUE) && inkOnly.knobColor === 'rgb(255, 0, 0)', inkOnly);
+    const safe = await page.evaluate((items) => {
+      const el = window.mk('a', { count_background: 'red;"><img src=x>', count_color: 'var(--accent-color)' }, items);
+      return { img: !!el.shadowRoot.querySelector('img'), style: el.shadowRoot.querySelector('.wrap').getAttribute('style') };
     }, ITEMS);
-    await page.waitForTimeout(400);
-    check('pastille : couleurs du thème (métal, laiton, carbone, néon toutes différentes)', new Set(['metal', 'brass', 'carbon', 'neon'].map((k) => themed[k].bg)).size === 4 && themed.brass.color === 'rgb(43, 29, 8)' && themed.neon.color === 'rgb(184, 247, 255)', themed);
-    check('voyant : petit bouton enfoncé (ombre intérieure) et chiffre incrusté', /inset/.test(themed.recess) && themed.emboss !== 'none', themed);
+    check('valeur de couleur : pas d\'injection dans le style', !safe.img && !safe.style.includes(';"') && safe.style.includes('--rsc-count-ink:var(--accent-color)'), safe);
     // 10 entités ou plus : deux chiffres, voyant plus large
     const many = await page.evaluate(() => {
       const items = Array.from({ length: 10 }, (_, k) => ({ entity: `light.n${k}` }));

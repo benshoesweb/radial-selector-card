@@ -215,6 +215,39 @@ module.exports = async (browser, h) => {
       return { opts, a, b: 'count_position' in last() };
     });
     check('nombre d\'entités allumées : voyant (défaut) ou pastille', cp.opts[0] === 'Dans le voyant du bouton (défaut)' && cp.a === 'badge' && cp.b === false, cp);
+    const cc = await page.evaluate(() => {
+      const empty = { bg: top$('count_background').value, ph: top$('count_background').placeholder, swatch: $('[data-swatch="count_background"]').value, inkSwatch: $('[data-swatch="count_color"]').value };
+      const pos = choose(top$('count_position'), 'badge');
+      typeIn(top$('count_background'), '#7b1fa2');
+      const a = last().count_background;
+      const sw = $('[data-swatch="count_color"]');
+      sw.value = '#ffeb3b'; sw.dispatchEvent(new Event('change'));
+      const b = last().count_color;
+      const kept = last().count_position;
+      $('[data-clear="count_background"]').click();
+      const c = 'count_background' in last();
+      const resetSwatch = $('[data-swatch="count_background"]').value;
+      $('[data-clear="count_color"]').click();
+      const d = 'count_color' in last();
+      choose(top$('count_position'), 'knob');
+      return { empty, a, b, kept, c, resetSwatch, d };
+    });
+    check('couleurs du nombre : vides par défaut, le sélecteur montre la couleur du thème HA', cc.empty.bg === '' && cc.empty.ph === 'Thème HA' && cc.empty.swatch === '#03a9f4' && cc.empty.inkSwatch === '#ffffff', cc);
+    check('couleurs du nombre : fond et chiffre enregistrés, position conservée', cc.a === '#7b1fa2' && cc.b === '#ffeb3b' && cc.kept === 'badge', cc);
+    check('couleurs du nombre : ✕ retire la clé et revient à la couleur du thème', cc.c === false && cc.d === false && cc.resetSwatch === '#03a9f4', cc);
+    const lateTheme = await page.evaluate(() => {
+      const ed = document.createElement('radial-selector-card-editor');
+      ed.hass = window.makeHass();
+      ed.setConfig({ items: [{ entity: 'light.salon' }, { entity: 'light.bureau' }] });
+      const host = document.createElement('div');
+      host.style.setProperty('--primary-color', '#ff5722');
+      host.appendChild(ed);
+      document.body.appendChild(host);
+      const v = ed.shadowRoot.querySelector('[data-swatch="count_background"]').value;
+      host.remove();
+      return v;
+    });
+    check('éditeur créé avant d\'entrer dans la page : couleur du thème lue à l\'arrivée', lateTheme === '#ff5722', lateTheme);
   }
   check('éditeur : aucune erreur JS', t.errors.length === 0, t.errors);
   await t.close();
