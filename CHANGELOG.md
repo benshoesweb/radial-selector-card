@@ -4,6 +4,16 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [Non publié]
+
+### Corrigé
+- **Éditeur : fond des champs et des listes** : ils reprenaient l'image de fond du tableau de bord (`--lovelace-background`). Avec un thème au fond en dégradé ou en image (par exemple une aurore boréale), chaque champ en affichait une version réduite et floue. Ils prennent maintenant la couleur de champ du thème (`--input-fill-color`, à défaut la couleur secondaire), comme les champs de Home Assistant.
+
+#### English
+
+##### Fixed
+- **Editor: field and dropdown background**: they used the dashboard's background image (`--lovelace-background`). With a theme whose background is a gradient or an image (an aurora, for example), every field showed a small, blurry copy of it. They now use the theme's field color (`--input-fill-color`, or the secondary background color), like Home Assistant's own fields.
+
 ## [1.4.0] — 2026-11-04
 
 ### Ajouté
