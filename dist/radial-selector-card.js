@@ -18,6 +18,7 @@
  *   - Retour haptique au doigt (haptics), mode nuit (night_mode: sun | entity | always, night_entity, night_level)
  *   - Entités en ligne en dessous (row_items) : style tile/metal, action, couleurs
  *   - Boutons dans les coins (extra_buttons, 4 max) : coin, style, action / pop-up, couleurs
+ *   - Nom de la carte : en titre en haut (show_title) et / ou sous le cercle fermé (show_label)
  *   - Réduction automatique (auto_close)
  *   - Jumeau d'un bouton rotatif physique (sync_entity : input_text / input_select partagé avec le
  *     blueprint blueprints/radial_knob_twin.yaml) : la carte s'ouvre et pointe l'entrée choisie au
@@ -214,6 +215,18 @@
     }
     @supports (width: 1cqw) {
       .stage { --radius: min(calc(100cqw / 2.8), 150px); }
+    }
+
+    /* Titre de la carte (show_title) : le nom, toujours visible en haut */
+    .title {
+      padding: 4px 16px 2px;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.4;
+      color: var(--primary-text-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .label {
@@ -1275,7 +1288,9 @@
       sec_general: 'Paramètres généraux', card_name: 'Nom de la carte', card_name_ph: 'Éclairage',
       auto_close: 'Réduction automatique (secondes, 0 = jamais)', size: 'Taille du bouton central (px)', auto: 'Auto',
       theme: 'Thème', theme_auto: 'Auto (thème HA)', theme_dark: 'Sombre', theme_light: 'Clair',
+      show_title: 'Afficher le nom en titre en haut de la carte',
       show_label: 'Afficher le libellé sous le cercle',
+      name_hint: 'Le nom de la carte s\'affiche en titre si « Afficher le nom en titre » est cochée, sinon sous le cercle fermé si « Afficher le libellé sous le cercle » l\'est. Cercle ouvert, le libellé affiche l\'entrée survolée ou choisie.',
       close_on_select: 'Réduire immédiatement après une sélection',
       show_brightness: 'Afficher la valeur sous l\'icône (luminosité, volume, position, consigne…)',
       show_count: 'Afficher le nombre d\'entités allumées sur le bouton fermé',
@@ -1351,7 +1366,9 @@
       sec_general: 'General settings', card_name: 'Card name', card_name_ph: 'Lighting',
       auto_close: 'Auto-collapse (seconds, 0 = never)', size: 'Center knob size (px)', auto: 'Auto',
       theme: 'Theme', theme_auto: 'Auto (HA theme)', theme_dark: 'Dark', theme_light: 'Light',
+      show_title: 'Show the name as a title at the top of the card',
       show_label: 'Show the label under the dial',
+      name_hint: 'The card name is shown as a title if "Show the name as a title" is checked, otherwise under the closed dial if "Show the label under the dial" is. With the dial open, the label shows the hovered or selected entry.',
       close_on_select: 'Collapse right after a selection',
       show_brightness: 'Show the value under the icon (brightness, volume, position, setpoint…)',
       show_count: 'Show how many entities are on, on the closed knob',
@@ -1628,13 +1645,16 @@
       if (this._hass) this.hass = this._hass;
     }
 
+    _hasTitle() { return !!(this._config && this._config.show_title && this._config.name); }
+
     getCardSize() {
-      return this._config && this._config.row_items && this._config.row_items.length ? 5 : 4;
+      const base = this._config && this._config.row_items && this._config.row_items.length ? 5 : 4;
+      return base + (this._hasTitle() ? 1 : 0);
     }
 
     getGridOptions() {
       const hasRow = this._config && this._config.row_items && this._config.row_items.length > 0;
-      return { columns: 6, rows: hasRow ? 5 : 4, min_columns: 3, min_rows: 3 };
+      return { columns: 6, rows: (hasRow ? 5 : 4) + (this._hasTitle() ? 1 : 0), min_columns: 3, min_rows: 3 };
     }
 
     _getEntityIcon(cfg, fallback = 'mdi:circle-outline') {
@@ -1692,6 +1712,7 @@
         <style>${CARD_STYLES}</style>
         <ha-card style="${this._cardStyle()}">
           <div class="wrap skin-${this._skin()}" style="${this._countStyle()}">
+            ${this._hasTitle() ? `<div class="title">${esc(c.name)}</div>` : ''}
             <div class="stage"${stageStyle}>
               <div class="selector anim-${this._anim()}">
                 <div class="halo" aria-hidden="true"><div class="halo-glow"></div><div class="halo-ring"></div></div>
@@ -2535,7 +2556,8 @@
     _updateLabel() {
       if (!this._label) return;
       const c = this._config;
-      let text = c.name || '';
+      // Cercle fermé : nom de la carte, sauf s'il est déjà affiché en titre
+      let text = this._hasTitle() ? '' : (c.name || '');
       if (this._open) {
         const k = this._hover != null ? this._hover : this._selected;
         text = this._getEntityName(this._items[k], '');
@@ -3516,6 +3538,7 @@
                 <select data-field="theme">${opts([['auto', t('theme_auto')], ['dark', t('theme_dark')], ['light', t('theme_light')]], c.theme || 'auto')}</select></div>
             </div>
             <div class="switches">
+              ${sw('show_title', !!c.show_title, t('show_title'))}
               ${sw('show_label', !!c.show_label, t('show_label'))}
               ${sw('close_on_select', !!c.close_on_select, t('close_on_select'))}
               ${sw('show_brightness', c.show_brightness !== false, t('show_brightness'))}
@@ -3523,6 +3546,7 @@
               ${sw('show_halo', c.show_halo !== false, t('show_halo'))}
               ${sw('haptics', c.haptics !== false, t('haptics'))}
             </div>
+            <div class="hint" style="margin:10px 0 0">${esc(t('name_hint'))}</div>
           </div>
 
           <div class="section" data-list="__top" data-idx="0">
