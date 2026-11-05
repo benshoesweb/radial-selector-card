@@ -105,7 +105,7 @@ extra_buttons:
 | Option | Valeurs | Défaut |
 |---|---|---|
 | `name` | nom de la carte : en titre en haut (`show_title`) ou sous le cercle fermé (`show_label`) | aucun |
-| `show_title` | affiche le nom en titre en haut de la carte, toujours visible | `false` |
+| `show_title` | affiche le nom en titre en haut de la carte, toujours visible, avec le titre standard des cartes Home Assistant (il suit le thème : `--ha-card-header-font-size`, `--ha-card-header-color`…) | `false` |
 | `items` | 2 à 10 entrées : `entity`, `name` (sinon le nom affiché par Home Assistant), `icon`, `color`, `tap_action`, `hold_action`, `dimmer`, `items` (groupe, 10 max) | — |
 | `extra_buttons` | 4 max : `entity`, `name`, `icon`, `position`, `style` (`metal` / `tile`), `popup`, `tap_action`, `hold_action`, `color`, `off_color`, `background` | — |
 | `row_items` | boutons sous le cercle (mêmes clés que `extra_buttons`, sans `position`) | — |
@@ -202,7 +202,7 @@ A rotary selector for Home Assistant dashboards: lights and devices around a kno
 - **Closed knob**: the indicator becomes a small recessed button with the number of entities on inlaid in it (`show_count`; `count_position: badge` for a corner badge instead), in the Home Assistant theme's colors or your own (`count_background`, `count_color`), and a colored halo (`show_halo`).
 - **Night mode** (`night_mode: sun | entity | always`, `night_level`), **haptic feedback** on touch screens (`haptics`).
 - **Physical knob twin**: with the [`radial_knob_twin.yaml`](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbenshoesweb%2Fradial-selector-card%2Fblob%2Fmain%2Fblueprints%2Fradial_knob_twin.yaml) blueprint, a Zigbee rotary knob (Zigbee2MQTT, ZHA, event entities…) turns through the same entries (the card opens and points at them), toggles on press and adjusts brightness, volume, position… on press + turn. Share a text helper between the blueprint and the card (`sync_entity`); `sync_open: false` keeps the card closed, `sync_from_card: false` stops card taps from changing the knob's entry.
-- **Card name**: `show_title: true` shows the `name` as a title at the top of the card, always visible; `show_label: true` shows a label under the dial (card name when closed and no title, hovered or selected entry when open).
+- **Card name**: `show_title: true` shows the `name` as a title at the top of the card, always visible, using Home Assistant's standard card title (it follows the theme); `show_label: true` shows a label under the dial (card name when closed and no title, hovered or selected entry when open).
 - Corner buttons, a row of buttons, 7 knob themes, 7 opening animations, touch / mouse / keyboard.
 
 - **Follows the Home Assistant theme**: `theme: auto`, `knob_theme: ha` and `palette: theme` make the whole card (knob, ring, indicator, entries, number of entities on) use the active theme's colors, in light and dark mode; the card background and the editor always follow the theme. Hand-picked colors still win.
@@ -216,7 +216,7 @@ A rotary selector for Home Assistant dashboards: lights and devices around a kno
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 235 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
+npm test          # 237 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
 ```
 
 Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**). Historique : [CHANGELOG.md](CHANGELOG.md).
