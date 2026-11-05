@@ -3,6 +3,7 @@
  * https://github.com/benshoesweb/radial-selector-card
  *
  * Fonctionnalités incluses :
+ *   - Noms des entités comme dans Home Assistant (hass.formatEntityName, sinon friendly_name)
  *   - Éditeur visuel intégré (composants natifs HA <ha-entity-picker>, <ha-icon-picker>)
  *     qui conserve toutes les autres clés de la configuration (grid_options, visibility, card_mod…)
  *     Carte et éditeur en français ou en anglais selon la langue de Home Assistant.
@@ -127,6 +128,21 @@
   // En dessous, la couleur de texte du thème n'est plus lisible sur sa couleur principale
   // (le bleu par défaut de Home Assistant avec du blanc est à 2,6)
   const MIN_COUNT_CONTRAST = 2.5;
+
+  // Nom d'une entité tel que Home Assistant l'affiche dans ses propres cartes : hass.formatEntityName
+  // (versions récentes ; depuis 2026.11, souvent le nom de l'appareil puis celui de l'entité),
+  // l'attribut friendly_name étant appelé à disparaître. Versions précédentes ou erreur : friendly_name, puis l'entity_id.
+  const haEntityName = (hass, entityId) => {
+    const st = hass && hass.states && entityId ? hass.states[entityId] : null;
+    if (!st) return '';
+    if (typeof hass.formatEntityName === 'function') {
+      try {
+        const n = hass.formatEntityName(st);
+        if (n != null && String(n).trim()) return String(n).trim();
+      } catch (e) { /* ancienne interface : nom de secours */ }
+    }
+    return (st.attributes && st.attributes.friendly_name) || '';
+  };
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -1633,11 +1649,7 @@
     _getEntityName(cfg, fallback = '') {
       if (!cfg) return fallback;
       if (cfg.name) return cfg.name;
-      if (this._hass && cfg.entity && this._hass.states[cfg.entity]) {
-        const attrs = this._hass.states[cfg.entity].attributes;
-        if (attrs && attrs.friendly_name) return attrs.friendly_name;
-      }
-      return cfg.entity || fallback;
+      return haEntityName(this._hass, cfg.entity) || cfg.entity || fallback;
     }
 
     _build() {
@@ -2692,6 +2704,8 @@
         if (ic && !it.icon && st && st.attributes && st.attributes.icon) {
           ic.setAttribute('icon', st.attributes.icon);
         }
+        // Nom lu par les lecteurs d'écran : calculé avant l'arrivée de hass, mis à jour ici
+        this._syncName(this._radios && this._radios[i], this._getEntityName(it), false);
       });
 
       this._xbtns.forEach(({ el, cfg }, j) => {
@@ -2701,6 +2715,7 @@
         if (ic && !cfg.icon && st && st.attributes && st.attributes.icon) {
           ic.setAttribute('icon', st.attributes.icon);
         }
+        this._syncName(el, this._getEntityName(cfg, this._t('button')), true);
       });
 
       this._rbtns.forEach(({ el, cfg }, k) => {
@@ -2710,10 +2725,18 @@
         if (ic && !cfg.icon && st && st.attributes && st.attributes.icon) {
           ic.setAttribute('icon', st.attributes.icon);
         }
+        this._syncName(el, this._getEntityName(cfg, this._t('entity_fb')), true);
       });
 
       this._updateIndicators();
       this._updateLabel();
+    }
+
+    // Nom d'un élément pour les lecteurs d'écran (et l'infobulle des boutons)
+    _syncName(el, name, withTitle) {
+      if (!el || !name) return;
+      if (el.getAttribute('aria-label') !== name) el.setAttribute('aria-label', name);
+      if (withTitle && el.getAttribute('title') !== name) el.setAttribute('title', name);
     }
 
     // Bouton fermé : nombre d'entités allumées + halo coloré à la place de chaque entrée allumée

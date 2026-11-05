@@ -4,6 +4,24 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.5.0] — 2026-11-05
+
+### Modifié
+- **Noms des entités comme dans Home Assistant** : sans `name` choisi, une entrée prend le nom que Home Assistant affiche lui-même (`hass.formatEntityName`, fourni par les versions récentes de Home Assistant), au lieu de l'attribut `friendly_name`, dont la suppression est annoncée. Depuis 2026.11, ce nom est souvent celui de l'appareil suivi de celui de l'entité (ex. « Séjour Plafonnier »), comme dans les cartes de Home Assistant. Pour garder un nom court, choisissez-le dans l'éditeur (champ « Nom ») ou avec `name`. Sur les versions qui ne le fournissent pas, rien ne change (`friendly_name`).
+
+### Corrigé
+- **Lecteurs d'écran** : les noms des entrées, des boutons de coin et de la ligne de boutons sont mis à jour avec les états de Home Assistant ; avant, ils pouvaient rester sur l'entity_id.
+- 7 vérifications automatiques de plus (222 au total).
+
+#### English
+
+##### Changed
+- **Entity names like Home Assistant's**: without a chosen `name`, an entry uses the name Home Assistant itself displays (`hass.formatEntityName`, provided by recent Home Assistant versions), instead of the `friendly_name` attribute, whose removal has been announced. Since 2026.11, this name is often the device name followed by the entity name (e.g. "Living room Ceiling"), as in Home Assistant's cards. To keep a short name, set it in the editor ("Name" field) or with `name`. On versions that don't provide it, nothing changes (`friendly_name`).
+
+##### Fixed
+- **Screen readers**: the names of the entries, corner buttons and button row are updated with Home Assistant's states; they could previously stay on the entity_id.
+- 7 more automated checks (222 in total).
+
 ## [1.4.1] — 2026-11-05
 
 ### Corrigé
@@ -136,6 +154,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.5.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.5.0
 [1.4.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.4.1
 [1.4.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.4.0
 [1.3.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.3.1
