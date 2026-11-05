@@ -104,7 +104,7 @@ extra_buttons:
 
 | Option | Valeurs | Défaut |
 |---|---|---|
-| `items` | 2 à 10 entrées : `entity`, `name`, `icon`, `color`, `tap_action`, `hold_action`, `dimmer`, `items` (groupe, 10 max) | — |
+| `items` | 2 à 10 entrées : `entity`, `name` (sinon le nom affiché par Home Assistant), `icon`, `color`, `tap_action`, `hold_action`, `dimmer`, `items` (groupe, 10 max) | — |
 | `extra_buttons` | 4 max : `entity`, `name`, `icon`, `position`, `style` (`metal` / `tile`), `popup`, `tap_action`, `hold_action`, `color`, `off_color`, `background` | — |
 | `row_items` | boutons sous le cercle (mêmes clés que `extra_buttons`, sans `position`) | — |
 | `center_hold_action` | `all_off`, ou une action : `navigate` (`#pop-up` ou vue), `perform-action` (ex. `scene.turn_on`), `more-info`, `url` | aucune |
@@ -212,7 +212,7 @@ A rotary selector for Home Assistant dashboards: lights and devices around a kno
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 215 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
+npm test          # 222 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
 ```
 
 Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**). Historique : [CHANGELOG.md](CHANGELOG.md).
