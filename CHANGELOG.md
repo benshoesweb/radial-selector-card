@@ -4,6 +4,24 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.7.0] — 2026-11-07
+
+### Ajouté
+- **Noms sous les icônes** : nouvelle option **`show_names`** (« Afficher le nom en petit sous l'icône » dans l'éditeur). Le nom de chaque entrée et de chaque groupe s'affiche en petit sous son icône, dans le cercle comme dans les sous-cercles : le nom choisi (`name`), sinon celui de Home Assistant. La valeur (50 %, 20,5°…) passe sous le nom, et l'ensemble reste centré sur la place de l'entrée. Un nom trop long est raccourci avec « … », selon la place laissée par les entrées voisines. Désactivée par défaut : les cartes existantes ne changent pas.
+- 13 vérifications automatiques de plus (250 au total).
+
+### Modifié
+- **README** réorganisé : l'anglais d'abord, puis le français, chaque partie complète ; nouvelles sections « Apparence de la carte » et images des zones tactiles et des fonds de carte.
+
+#### English
+
+##### Added
+- **Names under the icons**: new **`show_names`** option ("Show the name in small under the icon" in the editor). Each entry's and group's name shows in small under its icon, in the dial and in sub-dials: the chosen name (`name`), otherwise Home Assistant's. The value (50 %, 20.5°…) moves below the name, and the whole stays centered on the entry's spot. A name that is too long is shortened with "…", depending on the room left by the neighbouring entries. Off by default: existing cards don't change.
+- 13 more automated checks (250 in total).
+
+##### Changed
+- **README** reorganized: English first, then French, each part complete; new "Card appearance" sections and pictures of the touch zones and card backgrounds.
+
 ## [1.6.1] — 2026-11-05
 
 ### Modifié
@@ -182,6 +200,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.7.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.0
 [1.6.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.6.1
 [1.6.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.6.0
 [1.5.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.5.0
