@@ -26,6 +26,7 @@ The card and its visual editor follow Home Assistant's language (English or Fren
   - lights: brightness, then **white** and **color** with successive long presses;
   - amplifier / TV: volume · covers: position · thermostat: setpoint · fan: speed · `input_number`: value.
 - **Value under the icon**: 50 %, 20.5°, 35 %, "2/3" for a group…
+- **Names under the icons** (optional): each entry's and group's name in small under its icon, shortened with "…" when there is no room.
 - **Long press on the center knob**: turn everything off, open a pop-up or a view, or activate a scene.
 - **Closed knob**: the indicator becomes a small recessed button with the number of entities on inlaid in it (or a corner badge, as you prefer), in the Home Assistant theme's colors or your own, with a colored halo around the knob.
 - **Touch zones**: one sector per entry, lit up under the mouse or the finger.
@@ -38,6 +39,7 @@ The card and its visual editor follow Home Assistant's language (English or Fren
 
 ![Indicator and number of entities on](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/voyant.png)
 ![Touch zones, dimmer and themes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/zones.png)
+![Names under the icons](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/noms.png)
 ![Themes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/themes-sombre.png)
 ![Animations](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/animations.gif)
 
@@ -120,6 +122,7 @@ extra_buttons:
 | `center_hold_action` | `all_off`, or an action: `navigate` (`#pop-up` or view), `perform-action` (e.g. `scene.turn_on`), `more-info`, `url` | none |
 | `dimmer` | `false`: no rotary control; `true`: forced (light) — also per entry | auto |
 | `show_brightness` | value under the icon (%, volume, position, setpoint…) | `true` |
+| `show_names` | name in small under each entry's and group's icon: the chosen `name`, otherwise the name Home Assistant displays; the value moves below it | `false` |
 | `show_count` | number of entities on, on the closed knob | `true` |
 | `count_position` | `knob`: inlaid in the knob's indicator; `badge`: corner badge | `knob` |
 | `count_background` | CSS color of the number's background | HA theme's primary color |
@@ -211,7 +214,7 @@ Tapping an entry in the card then makes the knob control it. From another automa
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 237 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
+npm test          # 250 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
 ```
 
 The tests also run on GitHub on every change (**Tests** workflow). History: [CHANGELOG.md](CHANGELOG.md).
@@ -238,6 +241,7 @@ La carte et son éditeur visuel suivent la langue de Home Assistant (français o
   - lumières : luminosité, puis **blanc** et **couleur** par appuis longs successifs ;
   - ampli / TV : volume · volets : position · thermostat : consigne · ventilateur : vitesse · `input_number` : valeur.
 - **Valeur sous l'icône** : 50 %, 20,5°, 35 %, « 2/3 » pour un groupe…
+- **Noms sous les icônes** (en option) : le nom de chaque entrée et de chaque groupe en petit sous son icône, raccourci avec « … » s'il manque de place.
 - **Appui long sur le bouton central** : tout éteindre, ouvrir une pop-up, une vue ou activer une scène.
 - **Bouton fermé** : le voyant devient un petit bouton enfoncé où s'incruste le nombre d'entités allumées (ou une pastille dans le coin, au choix), aux couleurs du thème Home Assistant ou à celles de votre choix, et un halo coloré entoure le bouton.
 - **Zones tactiles** : un secteur par entrée, qui s'éclaire sous la souris ou le doigt.
@@ -250,6 +254,7 @@ La carte et son éditeur visuel suivent la langue de Home Assistant (français o
 
 ![Voyant et nombre d'entités allumées](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/voyant.png)
 ![Zones tactiles, variateur et thèmes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/zones.png)
+![Noms sous les icônes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/noms.png)
 ![Thèmes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/themes-sombre.png)
 ![Animations](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/animations.gif)
 
@@ -332,6 +337,7 @@ extra_buttons:
 | `center_hold_action` | `all_off`, ou une action : `navigate` (`#pop-up` ou vue), `perform-action` (ex. `scene.turn_on`), `more-info`, `url` | aucune |
 | `dimmer` | `false` : pas de molette ; `true` : molette forcée (lumière) — aussi par entrée | auto |
 | `show_brightness` | valeur sous l'icône (%, volume, position, consigne…) | `true` |
+| `show_names` | nom en petit sous l'icône de chaque entrée et groupe : le `name` choisi, sinon le nom affiché par Home Assistant ; la valeur passe en dessous | `false` |
 | `show_count` | nombre d'entités allumées sur le bouton fermé | `true` |
 | `count_position` | `knob` : incrusté dans le voyant du bouton ; `badge` : pastille dans le coin | `knob` |
 | `count_background` | couleur CSS du fond du nombre | couleur principale du thème HA |
@@ -423,7 +429,7 @@ Un appui sur une entrée de la carte la fait piloter ensuite par le bouton. Depu
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 237 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
+npm test          # 250 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
 ```
 
 Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**). Historique : [CHANGELOG.md](CHANGELOG.md).

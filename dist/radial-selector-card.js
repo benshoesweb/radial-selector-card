@@ -38,6 +38,8 @@
  *   palette           rainbow (défaut, arc-en-ciel) | theme (couleur principale du thème HA)
  *                     pour les entrées du cercle sans couleur choisie
  *   show_brightness   true (défaut) : petit % sous l'icône des lumières variables allumées ; false = masqué
+ *   show_names        false (défaut) | true : nom de chaque entrée et groupe en petit sous l'icône
+ *                     (le nom choisi, sinon celui de Home Assistant ; la valeur passe en dessous)
  *   zone_opacity      0–100 (défaut 80) : intensité du remplissage de la zone tactile éclairée.
  *                     Un secteur par entrée, séparé par un trait ; il se remplit de la couleur de
  *                     l'entrée uniquement sous la souris ou le doigt. 0 = jamais rempli (zones toujours
@@ -596,6 +598,27 @@
       pointer-events: none;
     }
     li.has-lvl .lvl { display: block; }
+    /* Nom de l'entrée en petit sous l'icône (show_names) ; la valeur passe en dessous */
+    .nm {
+      position: absolute;
+      left: 50%;
+      top: calc(50% + var(--radius) * 0.05);
+      transform: translateX(-50%);
+      max-width: var(--rsc-nmw, calc(var(--radius) * 0.6));
+      padding: 0.12em 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font: 500 max(8px, calc(var(--radius) * 0.072)) / 1.3 Roboto, "Segoe UI", sans-serif;
+      letter-spacing: 0.01em;
+      color: inherit;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+    /* Avec les noms, l'ensemble icône + nom + valeur remonte pour rester centré sur la place de l'entrée */
+    .selector.names .icon ha-icon { transform: translateY(calc(var(--radius) * -0.075)); }
+    .selector.names .lvl { top: calc(50% + var(--radius) * 0.05 + max(11px, calc(var(--radius) * 0.105))); }
+    li.lit .nm { opacity: 1; text-shadow: 0 1px 2px rgb(0 0 0 / 0.6); }
     /* Icône lisible sur la zone éclairée */
     li.lit .icon {
       color: #fff;
@@ -1282,6 +1305,7 @@
       name_hint: 'Le nom de la carte s\'affiche en titre si « Afficher le nom en titre » est cochée, sinon sous le cercle fermé si « Afficher le libellé sous le cercle » l\'est. Cercle ouvert, le libellé affiche l\'entrée survolée ou choisie.',
       close_on_select: 'Réduire immédiatement après une sélection',
       show_brightness: 'Afficher la valeur sous l\'icône (luminosité, volume, position, consigne…)',
+      show_names: 'Afficher le nom en petit sous l\'icône (nom choisi, sinon celui de Home Assistant)',
       show_count: 'Afficher le nombre d\'entités allumées sur le bouton fermé',
       show_halo: 'Halo coloré des entrées allumées autour du bouton fermé',
       haptics: 'Retour haptique (vibration) sur écran tactile',
@@ -1360,6 +1384,7 @@
       name_hint: 'The card name is shown as a title if "Show the name as a title" is checked, otherwise under the closed dial if "Show the label under the dial" is. With the dial open, the label shows the hovered or selected entry.',
       close_on_select: 'Collapse right after a selection',
       show_brightness: 'Show the value under the icon (brightness, volume, position, setpoint…)',
+      show_names: 'Show the name in small under the icon (chosen name, otherwise Home Assistant\'s)',
       show_count: 'Show how many entities are on, on the closed knob',
       show_halo: 'Colored halo of the entries that are on, around the closed knob',
       haptics: 'Haptic feedback (vibration) on touch screens',
@@ -1865,13 +1890,17 @@
       const zones = list.map((_, i) => `<div class="zone" style="--rsc-zc:${this._colors[i].c};background:conic-gradient(from ${r2(S * i - S / 2)}deg, transparent 0deg 0.4deg, var(--rsc-zc) 1.2deg ${r2(S - 1.2)}deg, transparent ${r2(S - 0.4)}deg)"></div>`).join('')
         + (n > 1 ? list.map((_, i) => `<div class="sep" style="transform:rotate(${r2(S * i - S / 2)}deg)"></div>`).join('') : '');
 
+      // Noms sous les icônes : largeur selon la place entre deux entrées voisines
+      const names = this._config.show_names === true;
+      this._sel.classList.toggle('names', names);
       const lis = list.map((it, i) => `
         <li data-index="${i}" class="${isGroup(it) ? 'group' : ''}" style="--rsc-n:${i + 1};--rsc-rot:${this._step * i}deg;--rsc-c:${this._colors[i].c};--rsc-cd:${this._colors[i].d};--rsc-ci:${this._colors[i].i}">
-          <div class="icon"><ha-icon data-circle-icon="${i}" icon="${esc(this._getEntityIcon(it, isGroup(it) ? 'mdi:folder-multiple-outline' : 'mdi:lightbulb'))}"></ha-icon><span class="lvl" aria-hidden="true"></span></div>
+          <div class="icon"><ha-icon data-circle-icon="${i}" icon="${esc(this._getEntityIcon(it, isGroup(it) ? 'mdi:folder-multiple-outline' : 'mdi:lightbulb'))}"></ha-icon>${names ? `<span class="nm" aria-hidden="true">${esc(this._getEntityName(it))}</span>` : ''}<span class="lvl" aria-hidden="true"></span></div>
           <input type="radio" name="rsc-${this._uid}" aria-label="${esc(this._getEntityName(it))}" ${i === 0 ? 'checked' : ''}>
         </li>`).join('');
 
       this._ul.innerHTML = `<div class="zones" aria-hidden="true" style="--rsc-zone-a-hot:${zoneOp}">${zones}</div>${lis}`;
+      this._ul.style.setProperty('--rsc-nmw', `calc(var(--radius) * ${r2(Math.min(0.72, 1.55 * Math.sin(Math.PI / Math.max(n, 2))))})`);
       this._lis = [...this._ul.querySelectorAll('li')];
       this._zones = [...this._ul.querySelectorAll('.zone')];
       this._radios = [...this._ul.querySelectorAll('input[type="radio"]')];
@@ -2714,8 +2743,10 @@
         if (ic && !it.icon && st && st.attributes && st.attributes.icon) {
           ic.setAttribute('icon', st.attributes.icon);
         }
-        // Nom lu par les lecteurs d'écran : calculé avant l'arrivée de hass, mis à jour ici
+        // Nom lu par les lecteurs d'écran (et affiché sous l'icône) : calculé avant l'arrivée de hass, mis à jour ici
         this._syncName(this._radios && this._radios[i], this._getEntityName(it), false);
+        const nm = li.querySelector('.nm');
+        if (nm && nm.textContent !== this._getEntityName(it)) nm.textContent = this._getEntityName(it);
       });
 
       this._xbtns.forEach(({ el, cfg }, j) => {
@@ -3530,6 +3561,7 @@
               ${sw('show_label', !!c.show_label, t('show_label'))}
               ${sw('close_on_select', !!c.close_on_select, t('close_on_select'))}
               ${sw('show_brightness', c.show_brightness !== false, t('show_brightness'))}
+              ${sw('show_names', c.show_names === true, t('show_names'))}
               ${sw('show_count', c.show_count !== false, t('show_count'))}
               ${sw('show_halo', c.show_halo !== false, t('show_halo'))}
               ${sw('haptics', c.haptics !== false, t('haptics'))}
