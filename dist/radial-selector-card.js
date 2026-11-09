@@ -159,6 +159,9 @@
     ha-card {
       overflow: hidden;
       transition: background 0.2s ease;
+      /* Les z-index de la carte (boutons de coin…) restent dans la carte : une pop-up (Bubble Card…)
+         et son fond flou passent bien par-dessus toute la carte */
+      isolation: isolate;
     }
 
     .wrap {

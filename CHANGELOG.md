@@ -4,6 +4,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.7.1] — 2026-11-09
+
+### Corrigé
+- **Pop-up (Bubble Card…)** : quand une pop-up s'ouvre par-dessus le tableau de bord, les **boutons de coin** de la carte restaient nets, au-dessus de son fond flou (et pouvaient dépasser sur la pop-up). Leur ordre d'affichage s'échappait de la carte ; il y reste désormais (`isolation`), et toute la carte passe sous le fond flou comme les autres cartes. Sans pop-up, rien ne change : les boutons de coin restent au-dessus du cercle.
+- 5 vérifications automatiques de plus (255 au total).
+
+#### English
+
+##### Fixed
+- **Pop-ups (Bubble Card…)**: when a pop-up opened over the dashboard, the card's **corner buttons** stayed sharp, above its blurred backdrop (and could overlap the pop-up). Their stacking order escaped the card; it now stays inside (`isolation`), and the whole card goes under the blurred backdrop like the other cards. Without a pop-up nothing changes: corner buttons stay above the dial.
+- 5 more automated checks (255 in total).
+
 ## [1.7.0] — 2026-11-07
 
 ### Ajouté
@@ -200,6 +212,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.7.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.1
 [1.7.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.0
 [1.6.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.6.1
 [1.6.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.6.0
