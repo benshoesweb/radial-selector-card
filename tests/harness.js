@@ -174,7 +174,7 @@ async function launch() {
 async function open(browser, body, o = {}) {
   const opts = { lang: 'fr', theme: 'dark', w: 420, h: 520, dsf: 1, ...o };
   const ctx = await browser.newContext({
-    viewport: { width: opts.w, height: opts.h }, deviceScaleFactor: opts.dsf, hasTouch: !!opts.touch,
+    viewport: { width: opts.w, height: opts.h }, deviceScaleFactor: opts.dsf, hasTouch: !!opts.touch || !!opts.mobile, isMobile: !!opts.mobile,
     reducedMotion: opts.reduce ? 'reduce' : 'no-preference', locale: opts.lang === 'fr' ? 'fr-FR' : 'en-US',
     ...(opts.video ? { recordVideo: opts.video } : {}),
   });

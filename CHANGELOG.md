@@ -4,6 +4,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.7.2] — 2026-11-09
+
+### Corrigé
+- **Voyant du bouton fermé sur téléphone et tablette** : après un appui sur le bouton central, le voyant restait à la couleur de l'entrée choisie (violet vif par exemple), puis reprenait sa couleur de repos dès qu'on touchait ailleurs ou changeait d'onglet. C'était le « survol » que les navigateurs mobiles gardent sur le dernier élément touché. La couleur au survol est désormais réservée à la souris et au pavé tactile : sur écran tactile, le voyant garde toujours la même couleur au repos, et prend la couleur de l'entrée quand le cercle est ouvert.
+- 8 vérifications automatiques de plus (263 au total).
+
+#### English
+
+##### Fixed
+- **Closed knob indicator on phones and tablets**: after tapping the center knob, the indicator stayed in the selected entry's color (bright purple for example), then went back to its resting color as soon as you touched elsewhere or switched tabs. It was the "hover" state mobile browsers keep on the last touched element. The hover color is now limited to mice and touchpads: on touch screens the indicator always keeps the same resting color, and takes the entry's color while the dial is open.
+- 8 more automated checks (263 in total).
+
 ## [1.7.1] — 2026-11-09
 
 ### Corrigé
@@ -212,6 +224,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.7.2]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.2
 [1.7.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.1
 [1.7.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.0
 [1.6.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.6.1
