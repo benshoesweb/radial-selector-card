@@ -1,6 +1,6 @@
 {
   "name": "radial-selector-card",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
   "description": "Rotary selector card for Home Assistant dashboards",
   "license": "MIT",
