@@ -354,7 +354,11 @@
         0 -1px 0 rgb(0 0 0 / 0.3));
       transition-delay: 0.15s, 0.15s, 0.15s, 0s, 0.15s, 0s;
     }
-    .knob:hover { --rsc-knob-color: linear-gradient(to top, var(--rsc-knob-on), var(--rsc-knob-on-darker)); }
+    /* Survol : seulement avec une souris ou un pavé tactile. Sur téléphone et tablette, le navigateur
+       garde le « survol » sur le dernier élément touché : le voyant resterait coloré au repos */
+    @media (hover: hover) and (pointer: fine) {
+      .knob:hover { --rsc-knob-color: linear-gradient(to top, var(--rsc-knob-on), var(--rsc-knob-on-darker)); }
+    }
     .knob:focus-visible::after { outline: 2px solid var(--primary-color); outline-offset: 2px; }
 
     .selector::after {
