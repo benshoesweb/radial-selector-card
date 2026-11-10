@@ -40,6 +40,19 @@
  *   show_brightness   true (défaut) : petit % sous l'icône des lumières variables allumées ; false = masqué
  *   show_names        false (défaut) | true : nom de chaque entrée et groupe en petit sous l'icône
  *                     (le nom choisi, sinon celui de Home Assistant ; la valeur passe en dessous)
+ * Couronne ouverte (défauts = forme actuelle) :
+ *   open_size         200–280 (défaut 260) : diamètre du disque ouvert, en % du diamètre du bouton
+ *   knob_shrink       0.5–1 (défaut 1) : taille du bouton à l'ouverture (0.8 = il recule de 20 %)
+ *   icon_radius       0.7–1.1 (défaut 0.99) : distance des icônes au centre, en diamètres de bouton
+ *   zone_gap          0–60 px (défaut 12 = auto, le creux actuel) : creux entre le liseré du bouton et les zones
+ *   zone_edge         px (défaut 14) : marge entre les zones et le bord du disque (largeur du fondu en mode edge,
+ *                     de l'ombre depuis le bord en mode knob)
+ *   zone_fade         edge (défaut : la zone s'estompe vers le bord du disque) | knob (zone nette, ombrée contre la paroi
+ *                     extérieure et au pied du bouton : effet de profondeur, de cuvette) | none (nette des deux côtés)
+ *   zone_style        fill (défaut) | halo (disque de lumière centré sur l'icône) | band (bandeau au bord)
+ *   separators        normal (défaut) | soft (discrets) | none
+ *   knob_press        true : à l'ouverture, le bouton s'enfonce puis se cale (défaut false)
+ *   open_wave         true : une onde de la couleur de l'entrée parcourt la couronne à l'ouverture (défaut false)
  *   zone_opacity      0–100 (défaut 80) : intensité du remplissage de la zone tactile éclairée.
  *                     Un secteur par entrée, séparé par un trait ; il se remplit de la couleur de
  *                     l'entrée uniquement sous la souris ou le doigt. 0 = jamais rempli (zones toujours
@@ -91,6 +104,38 @@
   const OFF_STATES = ['off', 'standby', 'unavailable', 'unknown'];
   const POSITIONS = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
   const CARD_STYLES_LIST = ['border_only', 'standard', 'background_only', 'transparent'];
+  const ZONE_STYLES = ['fill', 'halo', 'band'];
+  const SEPARATORS = ['normal', 'soft', 'none'];
+  const ZONE_FADES = ['edge', 'knob', 'none'];
+  // Couronne ouverte : valeurs de la forme actuelle (voir ringGeometry)
+  const RING_DEFAULTS = { open_size: 260, knob_shrink: 1, icon_radius: 0.99, zone_gap: 12, zone_edge: 14 };
+  const numIn = (v, d, lo, hi) => { const n = Number(v); return v !== null && v !== undefined && v !== '' && Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+  // Géométrie de la couronne ouverte, bornée. Sans option, c'est exactement la forme d'origine.
+  const ringGeometry = (c) => {
+    const g = {
+      open: numIn(c.open_size, 260, 200, 280),
+      ks: numIn(c.knob_shrink, 1, 0.5, 1),
+      ir: numIn(c.icon_radius, 0.99, 0.7, 1.1),
+      gap: c.zone_gap === null || c.zone_gap === undefined || c.zone_gap === '' || Number(c.zone_gap) === 12 ? null : numIn(c.zone_gap, 0, 0, 60),
+      edge: numIn(c.zone_edge, 14, 0, 40),
+      zone: ZONE_STYLES.includes(c.zone_style) ? c.zone_style : 'fill',
+      sep: SEPARATORS.includes(c.separators) ? c.separators : 'normal',
+      fade: ZONE_FADES.includes(c.zone_fade) ? c.zone_fade : 'edge',
+      press: c.knob_press === true,
+      wave: c.open_wave === true,
+    };
+    // Décalage de l'icône dans son rayon (7 = forme d'origine, icône à 0,99 diamètre du centre)
+    g.io = c.icon_radius === undefined || c.icon_radius === null || c.icon_radius === '' ? 7 : Math.round(((1.075 - g.ir) * 100) / 1.2 * 100) / 100;
+    // Bord intérieur des zones : le liseré du bouton (0,5 × bouton + 1/18 + 13 px) plus le creux ;
+    // creux « auto » = celui d'origine (0,0844 diamètre), soit 0,64 × diamètre + 12 px avec un bouton entier
+    const k = 0.5 * g.ks + 1 / 18 + (g.gap === null ? 0.0844 : 0);
+    g.zin = `calc(var(--radius) * ${Math.round(k * 10000) / 10000} + ${g.gap === null ? 12 : 13 + g.gap}px)`;
+    // Hauteur du texte sous le centre de l'icône (nom et / ou valeur), pour qu'il reste hors du bouton
+    const names = c.show_names === true;
+    const values = c.show_brightness !== false;
+    g.depth = names ? (values ? 0.28 : 0.19) : (values ? 0.23 : 0.13);
+    return g;
+  };
   // Thèmes du bouton (knob_theme) et animations d'ouverture (open_animation) ; le 1er est le défaut
   const SKINS = ['metal', 'ha', 'glass', 'neumorph', 'brass', 'carbon', 'neon'];
   const ANIMS = ['fan', 'bloom', 'spiral', 'cascade', 'pop', 'fade', 'none'];
@@ -241,6 +286,19 @@
       --rsc-icon-opacity: 0.4;
       --rsc-icon-offset: 100;
       --rsc-knob-color: linear-gradient(to bottom, var(--rsc-accent-off), var(--rsc-accent-off-darker));
+      /* Couronne ouverte (options open_size, knob_shrink, icon_radius, zone_gap, zone_edge) : forme d'origine */
+      --rsc-open: 260;
+      --rsc-ks: 1;
+      --rsc-io-cfg: 7;
+      /* Garde-fou : le nom et la valeur sous l'icône restent hors du bouton. --rsc-depth = hauteur du texte
+         sous le centre de l'icône (en diamètres) ; le liseré est à 0,5 × bouton + 1/18 + ~13 px (≈ 0,11) */
+      --rsc-depth: 0.23;
+      --rsc-io-min: calc((1.075 - (0.5 * var(--rsc-ks) + 0.0556 + 0.11 + var(--rsc-depth) + 0.02)) * 83.333);
+      --rsc-io-open: min(var(--rsc-io-cfg), var(--rsc-io-min));
+      --rsc-ir: 0.99;
+      --rsc-zedge: 14px;
+      --rsc-zin: calc(var(--radius) * 0.64 + 12px);
+      --rsc-knob-scale: 1;
       --rsc-accent-on-code: var(--rsc-angle) 100% 72%;
       --rsc-accent-on-darker-code: var(--rsc-angle) 98% 61%;
       --rsc-accent-on: hsl(var(--rsc-accent-on-code) / 1);
@@ -263,7 +321,7 @@
       inset: 0;
       display: grid;
       place-items: center;
-      transform: rotate(var(--rsc-knob-rot, calc(var(--rsc-knob-angle, var(--rsc-angle)) + var(--rsc-angle-offset))));
+      transform: rotate(var(--rsc-knob-rot, calc(var(--rsc-knob-angle, var(--rsc-angle)) + var(--rsc-angle-offset)))) scale(var(--rsc-knob-scale));
       transition:
         transform 0.4s var(--rsc-cubic),
         --rsc-knob-on 0.3s ease,
@@ -442,9 +500,12 @@
         --rsc-border-width 0.35s var(--rsc-cubic) 0.2s,
         --rsc-is-active 0.35s ease 0.2s,
         --rsc-ring-on 0.3s ease,
-        --rsc-ring-on-darker 0.3s ease;
-      width: calc(calc(100% + calc(var(--radius) / 9)) + calc(calc(var(--rsc-border-width) * 2) * 1px));
-      height: calc(calc(100% + calc(var(--radius) / 9)) + calc(calc(var(--rsc-border-width) * 2) * 1px));
+        --rsc-ring-on-darker 0.3s ease,
+        width 0.4s var(--rsc-cubic),
+        height 0.4s var(--rsc-cubic);
+      /* Le liseré suit le bouton, qui peut reculer à l'ouverture (knob_shrink) */
+      width: calc(calc(100% * var(--rsc-knob-scale) + calc(var(--radius) / 9)) + calc(calc(var(--rsc-border-width) * 2) * 1px));
+      height: calc(calc(100% * var(--rsc-knob-scale) + calc(var(--radius) / 9)) + calc(calc(var(--rsc-border-width) * 2) * 1px));
       border-radius: 9999px;
       box-shadow:
         0 0 calc(max(var(--rsc-is-active), 0) * 2px) var(--rsc-ring-on-darker),
@@ -455,11 +516,19 @@
     }
 
     .selector.active ul {
-      --rsc-selector-width: 260;
+      --rsc-selector-width: var(--rsc-open);
       --rsc-border-width: 13;
-      --rsc-icon-offset: 7;
+      --rsc-icon-offset: var(--rsc-io-open);
       --rsc-item-opacity: 1;
     }
+    .selector.active { --rsc-knob-scale: var(--rsc-ks); }
+    /* Pression : le bouton s'enfonce puis se cale (knob_press) */
+    @keyframes rsc-press {
+      0% { transform: rotate(var(--rsc-knob-rot, calc(var(--rsc-knob-angle, var(--rsc-angle)) + var(--rsc-angle-offset)))) scale(1); }
+      40% { transform: rotate(var(--rsc-knob-rot, calc(var(--rsc-knob-angle, var(--rsc-angle)) + var(--rsc-angle-offset)))) scale(calc(var(--rsc-ks) - 0.06)); }
+      100% { transform: rotate(var(--rsc-knob-rot, calc(var(--rsc-knob-angle, var(--rsc-angle)) + var(--rsc-angle-offset)))) scale(var(--rsc-ks)); }
+    }
+    .selector.active.press .knob { animation: rsc-press 0.55s cubic-bezier(0.2, 1.1, 0.4, 1); }
     .selector.active ul::before {
       box-shadow:
         inset 0 0 10px rgb(0 0 0 / 0.2),
@@ -551,17 +620,63 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 260%;
+      width: calc(var(--rsc-open) * 1%);
       aspect-ratio: 1 / 1;
       border-radius: 50%;
       pointer-events: none;
       opacity: 0;
       transform: translate(-50%, -50%) scale(0.6);
       transition: opacity 0.2s ease, transform 0.25s ease;
-      /* uniquement dans la couronne : entre le liseré du bouton et le bord du disque */
-      -webkit-mask: radial-gradient(closest-side, transparent calc(var(--radius) * 0.64 + 12px), #000 calc(var(--radius) * 0.64 + 24px), #000 calc(100% - 14px), transparent 100%);
-      mask: radial-gradient(closest-side, transparent calc(var(--radius) * 0.64 + 12px), #000 calc(var(--radius) * 0.64 + 24px), #000 calc(100% - 14px), transparent 100%);
+      /* uniquement dans la couronne : entre le liseré du bouton (+ creux zone_gap) et le bord du disque (- zone_edge) */
+      -webkit-mask: radial-gradient(closest-side, transparent var(--rsc-zin), #000 calc(var(--rsc-zin) + 12px), #000 calc(100% - var(--rsc-zedge)), transparent 100%);
+      mask: radial-gradient(closest-side, transparent var(--rsc-zin), #000 calc(var(--rsc-zin) + 12px), #000 calc(100% - var(--rsc-zedge)), transparent 100%);
     }
+    /* Fondu de la zone (zone_fade) : « none » = nette des deux côtés, à zone_edge du bord ;
+       « knob » = profondeur : la zone va jusqu'au bord du disque, ombrée depuis ce bord sur zone_edge px
+       (comme le fondu du mode « edge »), et au pied du bouton, comme au fond d'une cuvette */
+    .selector.fade-none .zones {
+      -webkit-mask: radial-gradient(closest-side, transparent var(--rsc-zin), #000 calc(var(--rsc-zin) + 1.5px), #000 calc(100% - var(--rsc-zedge)), transparent calc(100% - var(--rsc-zedge) + 1.5px));
+      mask: radial-gradient(closest-side, transparent var(--rsc-zin), #000 calc(var(--rsc-zin) + 1.5px), #000 calc(100% - var(--rsc-zedge)), transparent calc(100% - var(--rsc-zedge) + 1.5px));
+    }
+    .selector.fade-knob .zones {
+      -webkit-mask: radial-gradient(closest-side, transparent var(--rsc-zin), #000 calc(var(--rsc-zin) + 1.5px), #000 100%);
+      mask: radial-gradient(closest-side, transparent var(--rsc-zin), #000 calc(var(--rsc-zin) + 1.5px), #000 100%);
+    }
+    .selector.fade-knob .zone {
+      background:
+        radial-gradient(closest-side, rgb(0 0 0 / 0) calc(100% - var(--rsc-zedge)), rgb(0 0 0 / 0.6) 100%),
+        radial-gradient(closest-side, rgb(0 0 0 / 0.5) var(--rsc-zin), rgb(0 0 0 / 0) calc(var(--rsc-zin) + var(--radius) * 0.24)),
+        var(--rsc-zc);
+    }
+    /* Onde : un anneau de la couleur de l'entrée parcourt la couronne à l'ouverture (open_wave) */
+    .zones::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 3px var(--rsc-cur, #fff);
+      opacity: 0;
+      transform: scale(0.4);
+      pointer-events: none;
+    }
+    @keyframes rsc-wave { 0% { opacity: 0.85; transform: scale(0.4); } 100% { opacity: 0; transform: scale(1.02); } }
+    .selector.active.wave .zones::after { animation: rsc-wave 0.8s ease-out 0.08s; }
+    /* Forme de la zone éclairée (zone_style) : pleine, plus dense vers l'extérieur, halo autour de l'icône, bandeau au bord */
+    /* Halo : un disque de lumière centré sur l'icône de l'entrée (position posée par le JS, --rsc-zx / --rsc-zy) */
+    .selector.zone-halo .zone {
+      -webkit-mask: var(--rsc-zsec), radial-gradient(circle at var(--rsc-zx, 50%) var(--rsc-zy, 50%), #000 calc(var(--radius) * 0.13), transparent calc(var(--radius) * 0.3));
+      -webkit-mask-composite: source-in;
+      mask: var(--rsc-zsec), radial-gradient(circle at var(--rsc-zx, 50%) var(--rsc-zy, 50%), #000 calc(var(--radius) * 0.13), transparent calc(var(--radius) * 0.3));
+      mask-composite: intersect;
+    }
+    .selector.zone-band .zone {
+      -webkit-mask: var(--rsc-zsec), radial-gradient(closest-side, transparent calc(100% - var(--rsc-zedge) - var(--radius) * 0.14), #000 calc(100% - var(--rsc-zedge) - var(--radius) * 0.13));
+      -webkit-mask-composite: source-in;
+      mask: var(--rsc-zsec), radial-gradient(closest-side, transparent calc(100% - var(--rsc-zedge) - var(--radius) * 0.14), #000 calc(100% - var(--rsc-zedge) - var(--radius) * 0.13));
+      mask-composite: intersect;
+    }
+    .selector.sep-soft .sep { opacity: 0.35; }
+    .selector.sep-none .sep { display: none; }
     .selector.active .zones {
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
@@ -575,6 +690,9 @@
       border-radius: 50%;
       opacity: 0;
       transition: opacity 0.18s ease;
+      background: var(--rsc-zc);
+      -webkit-mask: var(--rsc-zsec);
+      mask: var(--rsc-zsec);
     }
     .zone.hot { opacity: var(--rsc-zone-a-hot, 0.8); }
     /* Traits de séparation entre les zones (coupés au centre et au bord par le masque des zones) */
@@ -609,7 +727,7 @@
     .nm {
       position: absolute;
       left: 50%;
-      top: calc(50% + var(--radius) * 0.05);
+      top: calc(50% + var(--radius) * 0.075);
       transform: translateX(-50%);
       max-width: var(--rsc-nmw, calc(var(--radius) * 0.6));
       padding: 0.12em 0;
@@ -623,8 +741,8 @@
       pointer-events: none;
     }
     /* Avec les noms, l'ensemble icône + nom + valeur remonte pour rester centré sur la place de l'entrée */
-    .selector.names .icon ha-icon { transform: translateY(calc(var(--radius) * -0.075)); }
-    .selector.names .lvl { top: calc(50% + var(--radius) * 0.05 + max(11px, calc(var(--radius) * 0.105))); }
+    .selector.names .icon ha-icon { transform: translateY(calc(var(--radius) * -0.09)); }
+    .selector.names .lvl { top: calc(50% + var(--radius) * 0.075 + max(12px, calc(var(--radius) * 0.115))); }
     li.lit .nm { opacity: 1; text-shadow: 0 1px 2px rgb(0 0 0 / 0.6); }
     /* Icône lisible sur la zone éclairée */
     li.lit .icon {
@@ -650,7 +768,7 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: calc(100% + var(--radius) / 9 + 32px);
+      width: calc(100% * var(--rsc-knob-scale) + var(--radius) / 9 + 32px);
       aspect-ratio: 1 / 1;
       transform: translate(-50%, -50%);
       z-index: 1;
@@ -964,6 +1082,7 @@
     .xbtn.tile.on ha-icon, .rbtn.tile.on ha-icon { filter: none; }
     @media (prefers-reduced-motion: reduce) {
       .xbtn.tile::before, .rbtn.tile::before { animation: none; background: var(--rsc-xcolor); }
+      .selector.active.press .knob, .selector.active.wave .zones::after { animation: none; }
     }
     .xbtn.bottom-right { right: calc(var(--radius) * 0.08); bottom: calc(var(--radius) * 0.08); }
     .xbtn.bottom-left  { left:  calc(var(--radius) * 0.08); bottom: calc(var(--radius) * 0.08); }
@@ -1268,7 +1387,7 @@
 
     /* Fondu : les icônes apparaissent sur place, sans mouvement */
     .selector.anim-fade li {
-      --rsc-icon-offset: 7;
+      --rsc-icon-offset: var(--rsc-io-open);
       transform: rotate(var(--rsc-rot));
       transition: --rsc-item-opacity 0.3s ease;
     }
@@ -1326,6 +1445,14 @@
       zone_opacity: 'Remplissage de la zone survolée :',
       knob_hint: '« Thème Home Assistant » reprend les couleurs du thème actif et change avec lui. Si « réduire les animations » est activé sur l\'appareil, l\'ouverture se fait en fondu.',
 
+      sec_ring: 'Couronne ouverte : zones et icônes', ring_hint: 'Sans réglage, la couronne garde sa forme actuelle. Rapprochez les icônes et supprimez le creux pour agrandir les zones ; faites reculer le bouton pour les agrandir encore. Les icônes ne descendent jamais plus bas que ce qui laisse leur nom et leur valeur hors du bouton. Le remplissage de la zone survolée et l\'animation d\'ouverture se règlent dans « Style du bouton ».',
+      open_size: 'Disque ouvert :', open_size_unit: '% du bouton', knob_shrink: 'Bouton à l\'ouverture : ×', icon_radius: 'Icônes, distance au centre : ×', icon_radius_unit: 'bouton',
+      zone_gap: 'Creux entre le liseré et les zones (12 = actuel) :', zone_edge: 'Au bord du disque (marge, fondu ou ombre) :',
+      zone_style: 'Forme de la zone survolée', zs_fill: 'Remplissage plein (défaut)', zs_halo: 'Halo : disque de lumière centré sur l\'icône', zs_band: 'Bandeau au bord',
+      separators: 'Traits de séparation', sep_normal: 'Normaux (défaut)', sep_soft: 'Discrets', sep_none: 'Aucun',
+      zone_fade: 'Fondu de la zone survolée', zf_edge: 'Vers le bord du disque (défaut)', zf_knob: 'Profondeur : zone ombrée contre la paroi et au pied du bouton', zf_none: 'Aucun : nette des deux côtés',
+      knob_press: 'Pression : le bouton s\'enfonce puis se cale à l\'ouverture', open_wave: 'Onde : un anneau de la couleur de l\'entrée parcourt la couronne à l\'ouverture',
+      ring_reset: 'Revenir à la forme d\'origine',
       sec_center: 'Bouton central', center_hold: 'Appui long sur le bouton central',
       count_position: 'Nombre d\'entités allumées', cp_knob: 'Dans le voyant du bouton (défaut)', cp_badge: 'Pastille dans le coin',
       count_background: 'Fond du nombre', count_color: 'Couleur du chiffre',
@@ -1405,6 +1532,14 @@
       zone_opacity: 'Hovered zone fill:',
       knob_hint: '"Home Assistant theme" uses the colors of the active theme and changes with it. If "reduce motion" is enabled on the device, the dial opens with a fade.',
 
+      sec_ring: 'Open dial: zones and icons', ring_hint: 'Without settings, the dial keeps its current shape. Bring the icons closer and remove the gap to enlarge the zones; shrink the knob to enlarge them further. The icons never go closer than what keeps their name and value clear of the knob. The hovered zone fill and the opening animation are set under "Knob style".',
+      open_size: 'Open disc:', open_size_unit: '% of the knob', knob_shrink: 'Knob when open: ×', icon_radius: 'Icons, distance from center: ×', icon_radius_unit: 'knob',
+      zone_gap: 'Gap between the rim and the zones (12 = current):', zone_edge: 'At the disc edge (margin, fade or shadow):',
+      zone_style: 'Hovered zone shape', zs_fill: 'Full fill (default)', zs_halo: 'Halo: disc of light centered on the icon', zs_band: 'Band at the edge',
+      separators: 'Separator lines', sep_normal: 'Normal (default)', sep_soft: 'Subtle', sep_none: 'None',
+      zone_fade: 'Hovered zone fade', zf_edge: 'Toward the disc edge (default)', zf_knob: 'Depth: zone shaded against the wall and at the foot of the knob', zf_none: 'None: sharp on both sides',
+      knob_press: 'Press: the knob sinks then settles when opening', open_wave: 'Wave: a ring in the entry\'s color sweeps the dial when opening',
+      ring_reset: 'Back to the original shape',
       sec_center: 'Center knob', center_hold: 'Long press on the center knob',
       count_position: 'Number of entities on', cp_knob: 'Inside the knob indicator (default)', cp_badge: 'Corner badge',
       count_background: 'Number background', count_color: 'Digit color',
@@ -1729,12 +1864,16 @@
         ? `<div class="bottom-row">${rbtns}</div>`
         : '';
 
+      // Couronne ouverte : géométrie et effets choisis (sans option : forme d'origine)
+      const g = ringGeometry(c);
+      const ringClasses = `${g.press ? ' press' : ''}${g.wave ? ' wave' : ''}${g.zone !== 'fill' ? ` zone-${g.zone}` : ''}${g.sep !== 'normal' ? ` sep-${g.sep}` : ''}${g.fade !== 'edge' ? ` fade-${g.fade}` : ''}`;
+      const ringVars = `--rsc-open:${g.open};--rsc-ks:${g.ks};--rsc-io-cfg:${g.io};--rsc-depth:${g.depth};--rsc-ir:${g.ir};--rsc-zedge:${g.edge}px;--rsc-zin:${g.zin}`;
       this.shadowRoot.innerHTML = `
         <style>${CARD_STYLES}</style>
         <ha-card style="${this._cardStyle()}"${this._hasTitle() ? ` header="${esc(c.name)}"` : ''}>
           <div class="wrap skin-${this._skin()}" style="${this._countStyle()}">
             <div class="stage"${stageStyle}>
-              <div class="selector anim-${this._anim()}">
+              <div class="selector anim-${this._anim()}${ringClasses}" style="${ringVars}">
                 <div class="halo" aria-hidden="true"><div class="halo-glow"></div><div class="halo-ring"></div></div>
                 <div class="knob" role="button" tabindex="0" aria-expanded="false" aria-label="${esc(c.name || this._t('selector'))}"></div>
                 <ul></ul>
@@ -1894,7 +2033,13 @@
       // par un trait ; la zone se remplit de la couleur de l'entrée sous la souris ou le doigt
       const S = this._step;
       const zoneOp = this._zoneOpacity();
-      const zones = list.map((_, i) => `<div class="zone" style="--rsc-zc:${this._colors[i].c};background:conic-gradient(from ${r2(S * i - S / 2)}deg, transparent 0deg 0.4deg, var(--rsc-zc) 1.2deg ${r2(S - 1.2)}deg, transparent ${r2(S - 0.4)}deg)"></div>`).join('')
+      // Centre de l'icône de chaque zone, en % du disque des zones (pour le halo : zone_style halo)
+      const g = ringGeometry(this._config);
+      const kz = (10000 * g.ir) / g.open;
+      const zpos = (i) => { const a = (S * i * Math.PI) / 180; return `--rsc-zx:${r2(50 + kz * Math.sin(a))}%;--rsc-zy:${r2(50 - kz * Math.cos(a))}%`; };
+      // Chaque zone : sa couleur (--rsc-zc) et son secteur (--rsc-zsec, un masque conique) ; le fond est en CSS,
+      // pour que la forme (zone_style) et le fondu (zone_fade) puissent le modifier
+      const zones = list.map((_, i) => `<div class="zone" style="--rsc-zc:${this._colors[i].c};${zpos(i)};--rsc-zsec:conic-gradient(from ${r2(S * i - S / 2)}deg, transparent 0deg 0.4deg, #000 1.2deg ${r2(S - 1.2)}deg, transparent ${r2(S - 0.4)}deg)"></div>`).join('')
         + (n > 1 ? list.map((_, i) => `<div class="sep" style="transform:rotate(${r2(S * i - S / 2)}deg)"></div>`).join('') : '');
 
       // Noms sous les icônes : largeur selon la place entre deux entrées voisines
@@ -2290,7 +2435,9 @@
       const rel = (((deg + 90) % 360) + 360) % 360;
       const idx = Math.round(rel / this._step) % this._items.length;
       // valid : geste tactile (on peut partir du bouton) ; ring : dans la couronne des zones
-      return { idx, valid: dist >= R * 0.2 && dist <= R * 2.9, ring: dist >= R * 1.05 && dist <= R * 2.65 };
+      // (le bouton peut reculer à l'ouverture, le disque peut être plus grand ou plus petit)
+      const g = ringGeometry(this._config);
+      return { idx, valid: dist >= R * 0.2 && dist <= R * (g.open / 100 + 0.3), ring: dist >= R * (g.ks + 0.05) && dist <= R * (g.open / 100 + 0.05) };
     }
 
     // ---------- Souris dans les zones ----------
@@ -2990,6 +3137,15 @@
       align-items: center;
       gap: 8px;
     }
+    /* Toutes les sections sont des menus dépliants, pour garder l'aperçu de la carte sous les yeux */
+    details.section > summary { list-style: none; cursor: pointer; user-select: none; }
+    details.section > summary::-webkit-details-marker { display: none; }
+    details.section:not([open]) > summary { margin-bottom: 0; }
+    details.section > summary::after { content: "▾"; font-size: 15px; line-height: 1; color: var(--secondary-text-color); transition: transform 0.2s ease; margin-left: 4px; }
+    details.section[open] > summary::after { transform: rotate(180deg); }
+    details.section > summary:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; border-radius: 6px; }
+    .ring-actions { margin-top: 10px; }
+    .sec-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
     .grid-2, .item-subgrid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -3150,8 +3306,8 @@
   // Options actives par défaut : l'éditeur n'écrit que « false »
   const DEFAULT_TRUE = ['show_brightness', 'show_count', 'show_halo', 'haptics', 'sync_open'];
   // Valeur par défaut des listes : choisir le défaut retire la clé
-  const SELECT_DEFAULTS = { theme: 'auto', card_style: 'border_only', knob_theme: 'metal', open_animation: 'fan', palette: 'rainbow', night_mode: 'off', count_position: 'knob' };
-  const RANGE_DEFAULTS = { zone_opacity: 80, night_level: 60 };
+  const SELECT_DEFAULTS = { theme: 'auto', card_style: 'border_only', knob_theme: 'metal', open_animation: 'fan', palette: 'rainbow', night_mode: 'off', count_position: 'knob', zone_style: 'fill', separators: 'normal', zone_fade: 'edge' };
+  const RANGE_DEFAULTS = { zone_opacity: 80, night_level: 60, ...RING_DEFAULTS };
 
   // Type d'action d'un bouton, pour l'éditeur
   const actionKind = (b) => {
@@ -3547,6 +3703,8 @@
       if (cKind === 'custom') centerList.push(['custom', t('c_custom')]);
 
       const sw = (key, checked, label) => `<label class="switch-label"><input type="checkbox" data-field="${key}" ${checked ? 'checked' : ''}> ${esc(label)}</label>`;
+      // Couronne ouverte : valeurs affichées (défaut = forme d'origine)
+      const rg = Object.fromEntries(Object.entries(RING_DEFAULTS).map(([k, d]) => [k, Number.isFinite(Number(c[k])) && c[k] !== '' && c[k] !== null && c[k] !== undefined ? Number(c[k]) : d]));
 
       this.shadowRoot.innerHTML = `
         <style>${EDITOR_STYLES}</style>
@@ -3589,6 +3747,34 @@
                 <input type="range" data-field="zone_opacity" min="0" max="100" step="5" value="${esc(c.zone_opacity ?? 80)}"></div>
             </div>
             <div class="hint" style="margin:10px 0 0">${esc(t('knob_hint'))}</div>
+          </div>
+
+          <div class="section ring" data-list="__top" data-idx="0" data-sec="ring">
+            <div class="section-title"><span>${esc(t('sec_ring'))}</span></div>
+            <div class="grid-2">
+              <div class="field"><label>${esc(t('open_size'))} <span data-range-label="open_size">${esc(rg.open_size)}</span> ${esc(t('open_size_unit'))}</label>
+                <input type="range" data-field="open_size" min="240" max="280" step="5" value="${esc(rg.open_size)}"></div>
+              <div class="field"><label>${esc(t('knob_shrink'))} <span data-range-label="knob_shrink">${esc(rg.knob_shrink)}</span></label>
+                <input type="range" data-field="knob_shrink" min="0.6" max="1" step="0.02" value="${esc(rg.knob_shrink)}"></div>
+              <div class="field"><label>${esc(t('icon_radius'))} <span data-range-label="icon_radius">${esc(rg.icon_radius)}</span> ${esc(t('icon_radius_unit'))}</label>
+                <input type="range" data-field="icon_radius" min="0.8" max="1.07" step="0.01" value="${esc(rg.icon_radius)}"></div>
+              <div class="field"><label>${esc(t('zone_edge'))} <span data-range-label="zone_edge">${esc(rg.zone_edge)}</span> px</label>
+                <input type="range" data-field="zone_edge" min="2" max="40" step="1" value="${esc(rg.zone_edge)}"></div>
+              <div class="field"><label>${esc(t('zone_gap'))} <span data-range-label="zone_gap">${esc(rg.zone_gap)}</span> px</label>
+                <input type="range" data-field="zone_gap" min="0" max="30" step="1" value="${esc(rg.zone_gap)}"></div>
+              <div class="field"><label>${esc(t('zone_style'))}</label>
+                <select data-field="zone_style">${opts(ZONE_STYLES.map((k) => [k, t(`zs_${k}`)]), ZONE_STYLES.includes(c.zone_style) ? c.zone_style : 'fill')}</select></div>
+              <div class="field"><label>${esc(t('zone_fade'))}</label>
+                <select data-field="zone_fade">${opts(ZONE_FADES.map((k) => [k, t(`zf_${k}`)]), ZONE_FADES.includes(c.zone_fade) ? c.zone_fade : 'edge')}</select></div>
+              <div class="field"><label>${esc(t('separators'))}</label>
+                <select data-field="separators">${opts(SEPARATORS.map((k) => [k, t(`sep_${k}`)]), SEPARATORS.includes(c.separators) ? c.separators : 'normal')}</select></div>
+            </div>
+            <div class="switches">
+              ${sw('knob_press', c.knob_press === true, t('knob_press'))}
+              ${sw('open_wave', c.open_wave === true, t('open_wave'))}
+            </div>
+            <div class="hint" style="margin:10px 0 0">${esc(t('ring_hint'))}</div>
+            <div class="ring-actions"><button type="button" class="btn-mini" data-ring-reset>${esc(t('ring_reset'))}</button></div>
           </div>
 
           <div class="section" data-list="__top" data-idx="0">
@@ -3665,6 +3851,29 @@
             ${rowCards || `<div class="hint">${esc(t('no_rows'))}</div>`}
           </div>
         </div>`;
+
+      // Toutes les sections sont des menus dépliants (details) : l'aperçu de la carte reste visible pendant
+      // les réglages. Toutes repliées à l'ouverture de l'éditeur ; l'état de chacune est ensuite gardé
+      // d'un rendu à l'autre, le temps de l'édition.
+      const SEC_KEYS = ['general', 'knob', 'ring', 'center', 'night', 'sync', 'card', 'items', 'extra', 'rows'];
+      if (!this._openSecs) this._openSecs = new Set();
+      [...this.shadowRoot.querySelectorAll('.editor-wrap > .section')].forEach((box, i) => {
+        const key = box.getAttribute('data-sec') || SEC_KEYS[i] || String(i);
+        const det = document.createElement('details');
+        [...box.attributes].forEach((a) => det.setAttribute(a.name, a.value));
+        while (box.firstChild) det.appendChild(box.firstChild);
+        box.replaceWith(det);
+        const title = det.querySelector(':scope > .section-title');
+        const sum = document.createElement('summary');
+        sum.className = 'section-title';
+        if (title) { while (title.firstChild) sum.appendChild(title.firstChild); title.replaceWith(sum); } else det.prepend(sum);
+        // Les boutons du titre (« + Ajouter ») passent sous l'en-tête : pas de clic par mégarde en dépliant
+        const btns = [...sum.querySelectorAll('button')];
+        if (btns.length) { const row = document.createElement('div'); row.className = 'sec-actions'; btns.forEach((b) => row.appendChild(b)); sum.after(row); }
+        det.setAttribute('data-sec', key);
+        det.open = this._openSecs.has(key);
+        det.addEventListener('toggle', () => { if (det.open) this._openSecs.add(key); else this._openSecs.delete(key); });
+      });
 
       this._bind();
       this._syncValues();
@@ -3797,6 +4006,10 @@
           if (txt) txt.value = '';
           if (sw) sw.value = sw.getAttribute('data-default');
           this._patch(scope, idx, { [key]: undefined });
+        }));
+
+        own('[data-ring-reset]').forEach((btn) => btn.addEventListener('click', () => {
+          this._patch('__top', 0, Object.fromEntries(['open_size', 'knob_shrink', 'icon_radius', 'zone_gap', 'zone_edge', 'zone_style', 'zone_fade', 'separators', 'knob_press', 'open_wave'].map((k) => [k, undefined])));
         }));
 
         own('select[data-field]').forEach((sel) => sel.addEventListener('change', () => {
