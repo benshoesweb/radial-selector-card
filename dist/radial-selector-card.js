@@ -130,10 +130,6 @@
     // creux « auto » = celui d'origine (0,0844 diamètre), soit 0,64 × diamètre + 12 px avec un bouton entier
     const k = 0.5 * g.ks + 1 / 18 + (g.gap === null ? 0.0844 : 0);
     g.zin = `calc(var(--radius) * ${Math.round(k * 10000) / 10000} + ${g.gap === null ? 12 : 13 + g.gap}px)`;
-    // Hauteur du texte sous le centre de l'icône (nom et / ou valeur), pour qu'il reste hors du bouton
-    const names = c.show_names === true;
-    const values = c.show_brightness !== false;
-    g.depth = names ? (values ? 0.28 : 0.19) : (values ? 0.23 : 0.13);
     return g;
   };
   // Thèmes du bouton (knob_theme) et animations d'ouverture (open_animation) ; le 1er est le défaut
@@ -290,11 +286,14 @@
       --rsc-open: 260;
       --rsc-ks: 1;
       --rsc-io-cfg: 7;
-      /* Garde-fou : le nom et la valeur sous l'icône restent hors du bouton. --rsc-depth = hauteur du texte
-         sous le centre de l'icône (en diamètres) ; le liseré est à 0,5 × bouton + 1/18 + ~13 px (≈ 0,11) */
-      --rsc-depth: 0.23;
-      --rsc-io-min: calc((1.075 - (0.5 * var(--rsc-ks) + 0.0556 + 0.11 + var(--rsc-depth) + 0.02)) * 83.333);
-      --rsc-io-open: min(var(--rsc-io-cfg), var(--rsc-io-min));
+      --rsc-io-open: var(--rsc-io-cfg);
+      /* Garde-fou : l'icône, le nom et la valeur restent hors du bouton et de son anneau d'ombre.
+         rim = bord extérieur de l'anneau ; depth = hauteur du texte sous le centre de l'icône ;
+         box = distance demandée des icônes ; push = recul ajouté aux icônes, seulement s'il le faut */
+      --rsc-rim-len: calc(var(--radius) * (0.5 * var(--rsc-ks) + 0.1325) + 13px);
+      --rsc-depth-len: calc(var(--radius) * 0.125 + max(9px, var(--radius) * 0.085));
+      --rsc-box-len: calc(var(--radius) * (1.075 - var(--rsc-io-cfg) * 0.012));
+      --rsc-push: max(0px, calc(var(--rsc-rim-len) + var(--rsc-depth-len) + 2px - var(--rsc-box-len)));
       --rsc-ir: 0.99;
       --rsc-zedge: 14px;
       --rsc-zin: calc(var(--radius) * 0.64 + 12px);
@@ -581,7 +580,7 @@
     .icon {
       position: absolute;
       left: 0;
-      top: calc(var(--rsc-icon-offset) * 1%);
+      top: calc(var(--rsc-icon-offset) * 1% - var(--rsc-push, 0px));
       width: 100%;
       aspect-ratio: 1 / 1;
       display: grid;
@@ -606,7 +605,7 @@
       all: unset;
       position: absolute;
       left: 0;
-      top: calc(var(--rsc-icon-offset) * 1%);
+      top: calc(var(--rsc-icon-offset) * 1% - var(--rsc-push, 0px));
       width: 100%;
       aspect-ratio: 1 / 1;
       cursor: pointer;
@@ -662,11 +661,12 @@
     @keyframes rsc-wave { 0% { opacity: 0.85; transform: scale(0.4); } 100% { opacity: 0; transform: scale(1.02); } }
     .selector.active.wave .zones::after { animation: rsc-wave 0.8s ease-out 0.08s; }
     /* Forme de la zone éclairée (zone_style) : pleine, plus dense vers l'extérieur, halo autour de l'icône, bandeau au bord */
-    /* Halo : un disque de lumière centré sur l'icône de l'entrée (position posée par le JS, --rsc-zx / --rsc-zy) */
+    /* Halo : un disque de lumière centré sur l'icône de l'entrée (direction posée par le JS : --rsc-zsin / --rsc-zcos) */
+    .zone { --rsc-zr: calc(var(--radius) * var(--rsc-ir) + var(--rsc-push, 0px)); }
     .selector.zone-halo .zone {
-      -webkit-mask: var(--rsc-zsec), radial-gradient(circle at var(--rsc-zx, 50%) var(--rsc-zy, 50%), #000 calc(var(--radius) * 0.13), transparent calc(var(--radius) * 0.3));
+      -webkit-mask: var(--rsc-zsec), radial-gradient(circle at calc(50% + var(--rsc-zr) * var(--rsc-zsin, 0)) calc(50% - var(--rsc-zr) * var(--rsc-zcos, 1)), #000 calc(var(--radius) * 0.13), transparent calc(var(--radius) * 0.3));
       -webkit-mask-composite: source-in;
-      mask: var(--rsc-zsec), radial-gradient(circle at var(--rsc-zx, 50%) var(--rsc-zy, 50%), #000 calc(var(--radius) * 0.13), transparent calc(var(--radius) * 0.3));
+      mask: var(--rsc-zsec), radial-gradient(circle at calc(50% + var(--rsc-zr) * var(--rsc-zsin, 0)) calc(50% - var(--rsc-zr) * var(--rsc-zcos, 1)), #000 calc(var(--radius) * 0.13), transparent calc(var(--radius) * 0.3));
       mask-composite: intersect;
     }
     .selector.zone-band .zone {
@@ -723,11 +723,14 @@
       pointer-events: none;
     }
     li.has-lvl .lvl { display: block; }
+    .selector.novals { --rsc-depth-len: calc(var(--radius) * 0.11); }
+    .selector.names { --rsc-depth-len: calc(var(--radius) * 0.06 + max(11px, var(--radius) * 0.105) + max(9px, var(--radius) * 0.078)); }
+    .selector.names.novals { --rsc-depth-len: calc(var(--radius) * 0.06 + max(8px, var(--radius) * 0.072) * 1.45); }
     /* Nom de l'entrée en petit sous l'icône (show_names) ; la valeur passe en dessous */
     .nm {
       position: absolute;
       left: 50%;
-      top: calc(50% + var(--radius) * 0.075);
+      top: calc(50% + var(--radius) * 0.06);
       transform: translateX(-50%);
       max-width: var(--rsc-nmw, calc(var(--radius) * 0.6));
       padding: 0.12em 0;
@@ -741,8 +744,10 @@
       pointer-events: none;
     }
     /* Avec les noms, l'ensemble icône + nom + valeur remonte pour rester centré sur la place de l'entrée */
-    .selector.names .icon ha-icon { transform: translateY(calc(var(--radius) * -0.09)); }
-    .selector.names .lvl { top: calc(50% + var(--radius) * 0.075 + max(12px, calc(var(--radius) * 0.115))); }
+    .selector.names .icon ha-icon { transform: translateY(calc(var(--radius) * -0.105)); }
+    .selector.names .lvl { top: calc(50% + var(--radius) * 0.06 + max(11px, calc(var(--radius) * 0.105))); font-size: max(9px, calc(var(--radius) * 0.078)); }
+    /* Repère d'un groupe : sous le nom, à la place de la valeur */
+    .selector.names li.group:not(.has-lvl) .icon::after { top: calc(50% + var(--radius) * 0.06 + max(11px, calc(var(--radius) * 0.105)) + var(--radius) * 0.025); }
     li.lit .nm { opacity: 1; text-shadow: 0 1px 2px rgb(0 0 0 / 0.6); }
     /* Icône lisible sur la zone éclairée */
     li.lit .icon {
@@ -1867,7 +1872,7 @@
       // Couronne ouverte : géométrie et effets choisis (sans option : forme d'origine)
       const g = ringGeometry(c);
       const ringClasses = `${g.press ? ' press' : ''}${g.wave ? ' wave' : ''}${g.zone !== 'fill' ? ` zone-${g.zone}` : ''}${g.sep !== 'normal' ? ` sep-${g.sep}` : ''}${g.fade !== 'edge' ? ` fade-${g.fade}` : ''}`;
-      const ringVars = `--rsc-open:${g.open};--rsc-ks:${g.ks};--rsc-io-cfg:${g.io};--rsc-depth:${g.depth};--rsc-ir:${g.ir};--rsc-zedge:${g.edge}px;--rsc-zin:${g.zin}`;
+      const ringVars = `--rsc-open:${g.open};--rsc-ks:${g.ks};--rsc-io-cfg:${g.io};--rsc-ir:${g.ir};--rsc-zedge:${g.edge}px;--rsc-zin:${g.zin}`;
       this.shadowRoot.innerHTML = `
         <style>${CARD_STYLES}</style>
         <ha-card style="${this._cardStyle()}"${this._hasTitle() ? ` header="${esc(c.name)}"` : ''}>
@@ -2033,10 +2038,8 @@
       // par un trait ; la zone se remplit de la couleur de l'entrée sous la souris ou le doigt
       const S = this._step;
       const zoneOp = this._zoneOpacity();
-      // Centre de l'icône de chaque zone, en % du disque des zones (pour le halo : zone_style halo)
-      const g = ringGeometry(this._config);
-      const kz = (10000 * g.ir) / g.open;
-      const zpos = (i) => { const a = (S * i * Math.PI) / 180; return `--rsc-zx:${r2(50 + kz * Math.sin(a))}%;--rsc-zy:${r2(50 - kz * Math.cos(a))}%`; };
+      // Direction de l'icône de chaque zone (pour le halo : zone_style halo)
+      const zpos = (i) => { const a = (S * i * Math.PI) / 180; return `--rsc-zsin:${Math.round(Math.sin(a) * 10000) / 10000};--rsc-zcos:${Math.round(Math.cos(a) * 10000) / 10000}`; };
       // Chaque zone : sa couleur (--rsc-zc) et son secteur (--rsc-zsec, un masque conique) ; le fond est en CSS,
       // pour que la forme (zone_style) et le fondu (zone_fade) puissent le modifier
       const zones = list.map((_, i) => `<div class="zone" style="--rsc-zc:${this._colors[i].c};${zpos(i)};--rsc-zsec:conic-gradient(from ${r2(S * i - S / 2)}deg, transparent 0deg 0.4deg, #000 1.2deg ${r2(S - 1.2)}deg, transparent ${r2(S - 0.4)}deg)"></div>`).join('')
@@ -2045,6 +2048,7 @@
       // Noms sous les icônes : largeur selon la place entre deux entrées voisines
       const names = this._config.show_names === true;
       this._sel.classList.toggle('names', names);
+      this._sel.classList.toggle('novals', this._config.show_brightness === false);
       const lis = list.map((it, i) => `
         <li data-index="${i}" class="${isGroup(it) ? 'group' : ''}" style="--rsc-n:${i + 1};--rsc-rot:${this._step * i}deg;--rsc-c:${this._colors[i].c};--rsc-cd:${this._colors[i].d};--rsc-ci:${this._colors[i].i}">
           <div class="icon"><ha-icon data-circle-icon="${i}" icon="${esc(this._getEntityIcon(it, isGroup(it) ? 'mdi:folder-multiple-outline' : 'mdi:lightbulb'))}"></ha-icon>${names ? `<span class="nm" aria-hidden="true">${esc(this._getEntityName(it))}</span>` : ''}<span class="lvl" aria-hidden="true"></span></div>

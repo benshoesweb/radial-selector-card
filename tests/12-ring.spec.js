@@ -94,11 +94,11 @@ module.exports = async (browser, h) => {
       const li = s.querySelectorAll('li')[0]; const rim = parseFloat(getComputedStyle(s.querySelector('ul'), '::after').width) / 2 / D;
       const low = (q) => { const e = li.querySelector(q); if (!e || (q === '.lvl' && !li.classList.contains('has-lvl'))) return null; return +((cy - e.getBoundingClientRect().bottom) / D).toFixed(3); };
       const ic = li.querySelector('ha-icon').getBoundingClientRect(); const nm = li.querySelector('.nm');
-      return { rim: +rim.toFixed(3), name: low('.nm'), value: low('.lvl'), gapIconName: nm ? +((nm.getBoundingClientRect().top - ic.bottom) / D).toFixed(3) : null };
+      return { rim: +(rim + 1 / 13).toFixed(3), name: low('.nm'), value: low('.lvl'), gapIconName: nm ? +((nm.getBoundingClientRect().top - ic.bottom) / D).toFixed(3) : null };
     });
     await open(page, { icon_radius: 0.8 });
     let o = await textOut(page); m = await measure(page);
-    check('icon_radius: 0.8 avec la valeur affichée : les icônes s\'arrêtent plus haut (≈ 0,91 D), la valeur reste hors du bouton', m.icon > 0.88 && o.value !== null && o.value > o.rim, { icon: m.icon, ...o });
+    check('icon_radius: 0.8 avec la valeur affichée : les icônes s\'arrêtent plus haut (≈ 0,95 D), la valeur reste hors du bouton et de son anneau d\'ombre', m.icon > 0.92 && o.value !== null && o.value > o.rim, { icon: m.icon, ...o });
     await open(page, { icon_radius: 0.8, show_names: true });
     o = await textOut(page);
     check('… avec le nom et la valeur : le nom est sous l\'icône (pas derrière), la valeur sous le nom, le tout hors du bouton', o.gapIconName > 0.03 && o.name > o.value && o.value > o.rim, o);
@@ -107,7 +107,7 @@ module.exports = async (browser, h) => {
     check('… bouton réduit : les icônes peuvent descendre davantage, le texte reste hors du bouton', m2.icon < m.icon && o2.value > o2.rim, { icon: m2.icon, ...o2 });
     await open(page, { icon_radius: 0.8, show_brightness: false });
     m = await measure(page);
-    check('… sans nom ni valeur : les icônes descendent à 0,8 D', Math.abs(m.icon - 0.8) <= 0.02, m.icon);
+    check('… sans nom ni valeur : les icônes descendent jusqu\'à toucher l\'anneau du bouton (≈ 0,85 D), pas dessous', Math.abs(m.icon - 0.854) <= 0.02, m.icon);
     await open(page, { zone_gap: 12 });
     m = await measure(page);
     check('zone_gap: 12 = le creux actuel (0,64 D + 12 px)', Math.abs(m.inner - (0.64 * m.D + 12)) < 0.6, { D: m.D, inner: m.inner });
@@ -132,12 +132,12 @@ module.exports = async (browser, h) => {
     let m = await measure(page);
     const halo = await litSpan(page);
     const haloSide = await litSpan(page, 22);
-    check('halo : disque de lumière centré sur l\'icône de la zone (en haut : 50 %, 11,9 % du disque), plein à 0,13 D, fondu à 0,3 D', m.cls.includes('zone-halo') && m.haloAt
-      && Math.abs(m.haloAt[0] - 50) < 0.1 && Math.abs(m.haloAt[1] - (50 - 10000 * 0.99 / 260)) < 0.1 && m.haloStops.length === 2 && Math.abs(m.haloStops[0] - 0.13 * m.D) < 0.6 && Math.abs(m.haloStops[1] - 0.3 * m.D) < 0.6, { D: m.D, at: m.haloAt, stops: m.haloStops });
+    check('halo : disque de lumière centré sur l\'icône de la zone (en haut, à 0,99 D du centre), plein à 0,13 D, fondu à 0,3 D', m.cls.includes('zone-halo') && m.haloStops && m.haloStops.length === 3
+      && Math.abs(m.haloStops[0] - 0.99 * m.D) < 0.6 && Math.abs(m.haloStops[1] - 0.13 * m.D) < 0.6 && Math.abs(m.haloStops[2] - 0.3 * m.D) < 0.6, { D: m.D, stops: m.haloStops });
     check('… en cercle : étroit le long de l\'icône, et rien à 22° de côté là où le plein éclaire encore', halo.count >= 4 && halo.count <= fill.count * 0.7 && halo.from >= 0.76 && halo.to <= 1.22 && fillSide.count >= 8 && haloSide.count <= 1, { fill, halo, fillSide, haloSide });
-    await open(page, { zone_style: 'halo', icon_radius: 0.85 });
+    await open(page, { zone_style: 'halo', icon_radius: 0.8, knob_shrink: 0.7 });
     const halo2 = await litSpan(page);
-    check('… et il suit les icônes quand elles se rapprochent (icon_radius: 0.85)', halo2.to < halo.to && halo2.from < halo.from, { halo, halo2 });
+    check('… et il suit les icônes quand elles se rapprochent (icon_radius: 0.8, bouton réduit)', halo2.to < halo.to && halo2.from < halo.from, { halo, halo2 });
     await open(page, { zone_style: 'band' });
     const band = await litSpan(page);
     check('band : seulement un bandeau au bord du disque', band.count <= 5 && band.to === fill.to && band.from >= 1.1, band);
