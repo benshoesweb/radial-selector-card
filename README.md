@@ -4,7 +4,7 @@ A rotary selector for Home Assistant dashboards: your lights and devices around 
 
 *Sélecteur rotatif pour les tableaux de bord Home Assistant : vos lumières et appareils autour d'un bouton à tourner.*
 
-**[English](#english)** · **[Français](#français)**
+*Unfold your language below the preview · Dépliez votre langue sous l'aperçu.*
 
 [![Open in Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=benshoesweb&repository=radial-selector-card&category=plugin)
 [![Validate](https://github.com/benshoesweb/radial-selector-card/actions/workflows/validate.yml/badge.svg)](https://github.com/benshoesweb/radial-selector-card/actions/workflows/validate.yml)
@@ -12,9 +12,8 @@ A rotary selector for Home Assistant dashboards: your lights and devices around 
 
 ![Demo](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/demo.gif)
 
----
-
-## English
+<details>
+<summary><h2>English</h2> (click to unfold)</summary>
 
 The card and its visual editor follow Home Assistant's language (English or French).
 
@@ -256,9 +255,10 @@ The tests also run on GitHub on every change (**Tests** workflow). History: [CHA
 
 The **Release** workflow attaches the card file to the release; the Marketplace then offers it as an update.
 
----
+</details>
 
-## Français
+<details>
+<summary><h2>Français</h2> (cliquer pour déplier)</summary>
 
 La carte et son éditeur visuel suivent la langue de Home Assistant (français ou anglais).
 
@@ -499,3 +499,5 @@ Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**).
 3. **Ensuite seulement**, créez la release GitHub `vX.Y.Z` sur `main` (ou `./scripts/release.sh vX.Y.Z`) : le tag contient alors le bon CHANGELOG.
 
 Le workflow **Release** joint le fichier de la carte à la release ; la Marketplace la propose ensuite en mise à jour.
+
+</details>

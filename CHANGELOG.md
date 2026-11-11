@@ -12,6 +12,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
   - `zone_style` : forme de la zone survolée : `fill` (pleine), `halo` (un disque de lumière centré sur l'icône de la zone, qui suit les icônes), `band` (bandeau au bord). `zone_fade` : fondu de la zone vers le bord du disque (`edge`, actuel), zone jusqu'au bord du disque, ombrée depuis ce bord (sur `zone_edge` px) et au pied du bouton (`knob`, effet de profondeur, comme au fond d'une cuvette), ou aucun (`none`). `separators` : traits `normal`, `soft` ou `none`.
   - Deux effets d'ouverture : `knob_press` (le bouton s'enfonce puis se cale) et `open_wave` (une onde de la couleur de l'entrée parcourt la couronne). Désactivés si « réduire les animations » est actif.
 - **Éditeur en menus dépliants** : toutes les sections se replient, et sont repliées à chaque ouverture de l'éditeur, pour garder l'aperçu de la carte sous les yeux ; l'état de chaque section est ensuite conservé pendant l'édition. Les boutons « + Ajouter » passent sous l'en-tête des sections, pour ne pas les cliquer par mégarde en dépliant.
+- **README** : chaque langue dans un menu dépliant, l'aperçu de la carte en premier.
 - 48 vérifications automatiques de plus (311 au total), dont la forme d'origine au pixel près sans option.
 
 #### English
@@ -22,6 +23,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
   - `zone_style`: shape of the hovered zone: `fill`, `halo` (a disc of light centered on the zone's icon, following the icons), `band` (at the edge). `zone_fade`: zone fade toward the disc edge (`edge`, current), a zone reaching the disc edge, shaded from that edge (over `zone_edge` px) and at the foot of the knob (`knob`, a depth effect, like the bottom of a bowl), or none. `separators`: `normal`, `soft` or `none` lines.
   - Two opening effects: `knob_press` (the knob sinks then settles) and `open_wave` (a ring in the entry's color sweeps the dial). Off when "reduce motion" is enabled.
 - **Collapsible editor**: every section folds, and all are folded each time the editor opens, to keep the card preview in sight; each section's state is then kept while editing. The "+ Add" buttons move below the section headers, so they are not clicked by mistake when unfolding.
+- **README**: each language in a collapsible section, the card preview first.
 - 48 more automated checks (311 in total), including the pixel-exact original shape without options.
 
 ## [1.7.2] — 2026-11-09
