@@ -4,6 +4,20 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.8.1] — 2026-11-11
+
+### Corrigé
+- **Noms sous les icônes** (`show_names`) : les **trois points** qui signalent un groupe se superposaient au nom du groupe ; ils sont maintenant sous le nom, à la place de la valeur.
+- **Valeur de l'entrée du haut** : elle pouvait passer sous l'anneau sombre qui entoure le bouton, surtout avec les noms affichés. Le garde-fou tient désormais compte de cet anneau et de la taille réelle de la carte : les icônes ne reculent que du nécessaire (rien ne bouge sans noms sur une carte de taille courante), le halo les suit, et l'ensemble icône + nom + valeur est un peu plus compact.
+- 2 vérifications automatiques de plus (313 au total).
+
+#### English
+
+##### Fixed
+- **Names under the icons** (`show_names`): the **three dots** that mark a group overlapped the group's name; they now sit below the name, in the value's place.
+- **Value of the top entry**: it could slip under the dark ring around the knob, mostly with names shown. The guard now accounts for that ring and for the card's real size: icons move back only as much as needed (nothing moves without names on a usual-size card), the halo follows them, and the icon + name + value stack is slightly more compact.
+- 2 more automated checks (313 in total).
+
 ## [1.8.0] — 2026-11-10
 
 ### Ajouté
@@ -246,6 +260,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.8.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.1
 [1.8.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.0
 [1.7.2]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.2
 [1.7.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.1

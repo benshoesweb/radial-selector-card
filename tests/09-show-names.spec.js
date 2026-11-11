@@ -49,6 +49,21 @@ module.exports = async (browser, h) => {
     });
     check('icône, puis le nom, puis la valeur (50 %), sans chevauchement', geo.order && geo.lvl && geo.lvlText === '50%', geo);
     check('nom trop long : coupé avec « … »', geo.ellipsis, geo);
+    // Repère d'un groupe (trois points) : sous le nom, sans le toucher ; valeur du haut hors de l'anneau du bouton
+    await page.evaluate(() => { window.setState('light.salle_de_bain', 'off'); window.setState('light.etage', 'off'); });   // groupe éteint : pas de valeur, donc le repère
+    await page.waitForTimeout(80);
+    const dots = await page.evaluate(() => {
+      const s = document.getElementById('a').shadowRoot; const sel = s.querySelector('.selector').getBoundingClientRect(); const D = sel.width; const cy = sel.top + D / 2;
+      const g = s.querySelectorAll('li')[2]; const icon = g.querySelector('.icon'); const after = getComputedStyle(icon, '::after');
+      const dotsTop = icon.getBoundingClientRect().top + parseFloat(after.top); const nm = g.querySelector('.nm').getBoundingClientRect();
+      const top = s.querySelectorAll('li')[0]; const ring = parseFloat(getComputedStyle(s.querySelector('ul'), '::after').width) / 2 + D / 13;
+      return { group: g.classList.contains('group'), noValue: !g.classList.contains('has-lvl'), dotsH: parseFloat(after.height), gap: +(dotsTop - nm.bottom).toFixed(1),
+        valueAboveRing: +((cy - top.querySelector('.lvl').getBoundingClientRect().bottom) - ring).toFixed(1) };
+    });
+    check('groupe sans valeur : les trois points sont sous le nom, sans le toucher', dots.group && dots.noValue && dots.dotsH >= 3 && dots.gap >= 2, dots);
+    await page.evaluate(() => { window.setState('light.salle_de_bain', 'on'); window.setState('light.etage', 'on'); });
+    await page.waitForTimeout(80);
+    check('entrée du haut : la valeur reste au-dessus de l\'anneau sombre du bouton', dots.valueAboveRing >= 1, dots);
     // Le nom de Home Assistant change : le nom affiché suit
     await page.evaluate(() => window.setState('light.salon', 'on', { friendly_name: 'Séjour' }));
     await page.waitForTimeout(60);
