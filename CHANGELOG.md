@@ -4,6 +4,28 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.8.0] — 2026-11-10
+
+### Ajouté
+- **Couronne ouverte réglable**, pour agrandir les zones tactiles : dix options facultatives, regroupées dans une section dépliante de l'éditeur (« Couronne ouverte : zones et icônes », fermée par défaut, avec un bouton « Revenir à la forme d'origine »). Sans option, la carte garde exactement sa forme actuelle.
+  - `open_size` (diamètre du disque ouvert), `knob_shrink` (le bouton recule à l'ouverture ; le liseré, l'arc du variateur et les zones réactives le suivent), `icon_radius` (distance des icônes au centre ; les icônes ne descendent jamais plus bas que ce qui laisse leur nom et leur valeur hors du bouton), `zone_gap` (creux entre le liseré et les zones, 12 = comme aujourd'hui), `zone_edge` (marge au bord du disque).
+  - `zone_style` : forme de la zone survolée : `fill` (pleine), `halo` (un disque de lumière centré sur l'icône de la zone, qui suit les icônes), `band` (bandeau au bord). `zone_fade` : fondu de la zone vers le bord du disque (`edge`, actuel), zone jusqu'au bord du disque, ombrée depuis ce bord (sur `zone_edge` px) et au pied du bouton (`knob`, effet de profondeur, comme au fond d'une cuvette), ou aucun (`none`). `separators` : traits `normal`, `soft` ou `none`.
+  - Deux effets d'ouverture : `knob_press` (le bouton s'enfonce puis se cale) et `open_wave` (une onde de la couleur de l'entrée parcourt la couronne). Désactivés si « réduire les animations » est actif.
+- **Éditeur en menus dépliants** : toutes les sections se replient, et sont repliées à chaque ouverture de l'éditeur, pour garder l'aperçu de la carte sous les yeux ; l'état de chaque section est ensuite conservé pendant l'édition. Les boutons « + Ajouter » passent sous l'en-tête des sections, pour ne pas les cliquer par mégarde en dépliant.
+- **README** : chaque langue dans un menu dépliant, l'aperçu de la carte en premier.
+- 48 vérifications automatiques de plus (311 au total), dont la forme d'origine au pixel près sans option.
+
+#### English
+
+##### Added
+- **Adjustable open dial**, to enlarge the touch zones: ten optional settings, grouped in a collapsible editor section ("Open dial: zones and icons", closed by default, with a "Back to the original shape" button). Without them, the card keeps exactly its current shape.
+  - `open_size` (open disc diameter), `knob_shrink` (the knob shrinks when opening; the rim, the dimmer arc and the reactive zones follow), `icon_radius` (icons' distance from the center; the icons never go closer than what keeps their name and value clear of the knob), `zone_gap` (gap between the rim and the zones, 12 = as today), `zone_edge` (margin at the disc edge).
+  - `zone_style`: shape of the hovered zone: `fill`, `halo` (a disc of light centered on the zone's icon, following the icons), `band` (at the edge). `zone_fade`: zone fade toward the disc edge (`edge`, current), a zone reaching the disc edge, shaded from that edge (over `zone_edge` px) and at the foot of the knob (`knob`, a depth effect, like the bottom of a bowl), or none. `separators`: `normal`, `soft` or `none` lines.
+  - Two opening effects: `knob_press` (the knob sinks then settles) and `open_wave` (a ring in the entry's color sweeps the dial). Off when "reduce motion" is enabled.
+- **Collapsible editor**: every section folds, and all are folded each time the editor opens, to keep the card preview in sight; each section's state is then kept while editing. The "+ Add" buttons move below the section headers, so they are not clicked by mistake when unfolding.
+- **README**: each language in a collapsible section, the card preview first.
+- 48 more automated checks (311 in total), including the pixel-exact original shape without options.
+
 ## [1.7.2] — 2026-11-09
 
 ### Corrigé
@@ -224,6 +246,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.8.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.0
 [1.7.2]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.2
 [1.7.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.1
 [1.7.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.0

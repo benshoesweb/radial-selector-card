@@ -4,7 +4,7 @@ A rotary selector for Home Assistant dashboards: your lights and devices around 
 
 *Sélecteur rotatif pour les tableaux de bord Home Assistant : vos lumières et appareils autour d'un bouton à tourner.*
 
-**[English](#english)** · **[Français](#français)**
+*Unfold your language below the preview · Dépliez votre langue sous l'aperçu.*
 
 [![Open in Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=benshoesweb&repository=radial-selector-card&category=plugin)
 [![Validate](https://github.com/benshoesweb/radial-selector-card/actions/workflows/validate.yml/badge.svg)](https://github.com/benshoesweb/radial-selector-card/actions/workflows/validate.yml)
@@ -12,9 +12,8 @@ A rotary selector for Home Assistant dashboards: your lights and devices around 
 
 ![Demo](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/demo.gif)
 
----
-
-## English
+<details>
+<summary><h2>English</h2> (click to unfold)</summary>
 
 The card and its visual editor follow Home Assistant's language (English or French).
 
@@ -29,13 +28,13 @@ The card and its visual editor follow Home Assistant's language (English or Fren
 - **Names under the icons** (optional): each entry's and group's name in small under its icon, shortened with "…" when there is no room.
 - **Long press on the center knob**: turn everything off, open a pop-up or a view, or activate a scene.
 - **Closed knob**: the indicator becomes a small recessed button with the number of entities on inlaid in it (or a corner badge, as you prefer), in the Home Assistant theme's colors or your own, with a colored halo around the knob.
-- **Touch zones**: one sector per entry, lit up under the mouse or the finger.
+- **Touch zones**: one sector per entry, lit up under the mouse or the finger. The open dial can be **tightened** to enlarge them: zones from the knob rim, icons closer, knob that shrinks when opening ([see below](#open-dial-zones-and-icons)).
 - **Corner buttons** (up to 4) and a **row of buttons**: Bubble Card pop-up, view, device, with a status light.
 - **7 knob themes** (metal, Home Assistant theme, glass, soft, brass, carbon, neon) and **7 opening animations**.
 - **Night mode**, **haptic feedback** on tablets and phones, touch screen, mouse and keyboard.
 - **Physical rotary knob** (Zigbee2MQTT, ZHA, Matter…) driving the same entries as the card, with the included blueprint: [see below](#physical-rotary-knob-twin).
 - **Follows the Home Assistant theme**: light or dark, the knob, the entry colors and the number of entities on use the active theme's colors ([see below](#follow-the-home-assistant-theme)).
-- **Full visual editor**, in the theme's colors, that keeps the card's layout (`grid_options`) and visibility.
+- **Full visual editor** in collapsible sections (the card preview stays in sight), in the theme's colors, that keeps the card's layout (`grid_options`) and visibility.
 
 ![Indicator and number of entities on](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/voyant.png)
 ![Touch zones, dimmer and themes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/zones.png)
@@ -138,6 +137,16 @@ extra_buttons:
 | `open_animation` | `fan`, `bloom`, `spiral`, `cascade`, `pop`, `fade`, `none` | `fan` |
 | `palette` | `rainbow`, `theme` (HA theme's primary color) | `rainbow` |
 | `zone_opacity` | 0 to 100: fill of the hovered zone | `80` |
+| `open_size` | 200 to 280: diameter of the open disc, in % of the knob ([see below](#open-dial-zones-and-icons)) | `260` |
+| `knob_shrink` | 0.5 to 1: knob size when open (0.8 = it shrinks by 20 %; the rim, the dimmer arc and the zones follow) | `1` |
+| `icon_radius` | 0.7 to 1.1: distance of the icons from the center, in knob diameters (never closer than what keeps the name and value clear of the knob) | `0.99` |
+| `zone_gap` | 0 to 60 px: gap between the knob rim and the zones (`12` = as today) | `12` |
+| `zone_edge` | px: at the disc edge, the width of the margin (`zone_fade: none`), of the fade (`edge`) or of the shadow (`knob`) | `14` |
+| `zone_fade` | fade of the hovered zone: `edge` (fades toward the disc edge), `knob` (the zone reaches the disc edge and is shaded from that edge and at the foot of the knob: a depth effect), `none` (sharp on both sides) | `edge` |
+| `zone_style` | shape of the hovered zone: `fill`, `halo` (a disc of light centered on the icon), `band` (at the edge) | `fill` |
+| `separators` | lines between the zones: `normal`, `soft`, `none` | `normal` |
+| `knob_press` | when opening, the knob sinks then settles | `false` |
+| `open_wave` | when opening, a ring in the entry's color sweeps the dial | `false` |
 | `auto_close` | seconds before the dial closes (0 = never) | `10` |
 | `card_style` | `border_only`, `standard`, `background_only`, `transparent` ([see below](#card-appearance)) | `border_only` |
 | `card_background`, `card_border_color` | CSS colors | theme |
@@ -168,6 +177,25 @@ The card background and border always follow the theme (unless you pick a color 
 In the editor (**Card appearance**), choose the card's background and border: border without background (default), background + border, background without border, or **transparent**, to place the knob straight on the dashboard background. Colors can be picked with `card_background` and `card_border_color`; otherwise the theme's colors apply.
 
 ![Card appearance](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/apparence.png)
+
+### Open dial: zones and icons
+
+By default the open dial keeps its current shape. The editor's collapsible section **Open dial: zones and icons** (closed by default, with a **Back to the original shape** button) lets you tighten the ring to enlarge the touch zones: start the zones right at the knob rim (`zone_gap: 0`), bring the icons closer (`icon_radius`), shrink the knob when it opens (`knob_shrink`) or enlarge the disc (`open_size`). Two optional opening effects come with it: **press** (the knob sinks then settles) and **wave** (a ring in the entry's color sweeps the dial), plus the shape of the hovered zone (`zone_style`), its fade (`zone_fade`: toward the edge, or toward the knob for a depth effect) and the separator lines.
+
+![Open dial settings](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/couronne.png)
+
+```yaml
+type: custom:radial-selector-card
+knob_shrink: 0.8        # the knob shrinks by 20 % when open
+icon_radius: 0.91       # icons closer to the center
+zone_gap: 0             # zones start at the knob rim
+zone_edge: 10
+knob_press: true
+open_animation: bloom
+items:
+  - entity: light.living_room
+  - entity: light.kitchen
+```
 
 ### Physical rotary knob (twin)
 
@@ -214,7 +242,7 @@ Tapping an entry in the card then makes the knob control it. From another automa
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 263 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
+npm test          # 311 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
 ```
 
 The tests also run on GitHub on every change (**Tests** workflow). History: [CHANGELOG.md](CHANGELOG.md).
@@ -227,9 +255,10 @@ The tests also run on GitHub on every change (**Tests** workflow). History: [CHA
 
 The **Release** workflow attaches the card file to the release; the Marketplace then offers it as an update.
 
----
+</details>
 
-## Français
+<details>
+<summary><h2>Français</h2> (cliquer pour déplier)</summary>
 
 La carte et son éditeur visuel suivent la langue de Home Assistant (français ou anglais).
 
@@ -244,13 +273,13 @@ La carte et son éditeur visuel suivent la langue de Home Assistant (français o
 - **Noms sous les icônes** (en option) : le nom de chaque entrée et de chaque groupe en petit sous son icône, raccourci avec « … » s'il manque de place.
 - **Appui long sur le bouton central** : tout éteindre, ouvrir une pop-up, une vue ou activer une scène.
 - **Bouton fermé** : le voyant devient un petit bouton enfoncé où s'incruste le nombre d'entités allumées (ou une pastille dans le coin, au choix), aux couleurs du thème Home Assistant ou à celles de votre choix, et un halo coloré entoure le bouton.
-- **Zones tactiles** : un secteur par entrée, qui s'éclaire sous la souris ou le doigt.
+- **Zones tactiles** : un secteur par entrée, qui s'éclaire sous la souris ou le doigt. La couronne ouverte peut être **resserrée** pour les agrandir : zones dès le liseré, icônes plus près, bouton qui recule à l'ouverture ([voir plus bas](#couronne-ouverte--zones-et-icônes)).
 - **Boutons de coin** (jusqu'à 4) et **ligne de boutons** : pop-up Bubble Card, vue, appareil, avec voyant d'état.
 - **7 thèmes** (métal, thème Home Assistant, verre, doux, laiton, carbone, néon) et **7 animations d'ouverture**.
 - **Mode nuit**, **retour haptique** sur tablette / téléphone, écran tactile, souris et clavier.
 - **Bouton rotatif physique** (Zigbee2MQTT, ZHA, Matter…) qui pilote les mêmes entrées que la carte, avec le blueprint fourni : [voir plus bas](#bouton-rotatif-physique-jumeau).
 - **Suit le thème Home Assistant** : clair ou sombre, bouton, couleurs des entrées et nombre d'entités allumées aux couleurs du thème actif ([voir plus bas](#suivre-le-thème-home-assistant)).
-- **Éditeur visuel complet**, aux couleurs du thème, qui conserve la disposition (`grid_options`) et la visibilité de la carte.
+- **Éditeur visuel complet** en sections dépliantes (l'aperçu de la carte reste visible), aux couleurs du thème, qui conserve la disposition (`grid_options`) et la visibilité de la carte.
 
 ![Voyant et nombre d'entités allumées](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/voyant.png)
 ![Zones tactiles, variateur et thèmes](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/zones.png)
@@ -353,6 +382,16 @@ extra_buttons:
 | `open_animation` | `fan`, `bloom`, `spiral`, `cascade`, `pop`, `fade`, `none` | `fan` |
 | `palette` | `rainbow`, `theme` (couleur principale du thème HA) | `rainbow` |
 | `zone_opacity` | 0 à 100 : remplissage de la zone survolée | `80` |
+| `open_size` | 200 à 280 : diamètre du disque ouvert, en % du bouton ([voir plus bas](#couronne-ouverte--zones-et-icônes)) | `260` |
+| `knob_shrink` | 0,5 à 1 : taille du bouton à l'ouverture (0,8 = il recule de 20 % ; le liseré, l'arc du variateur et les zones suivent) | `1` |
+| `icon_radius` | 0,7 à 1,1 : distance des icônes au centre, en diamètres de bouton (jamais plus près que ce qui laisse le nom et la valeur hors du bouton) | `0.99` |
+| `zone_gap` | 0 à 60 px : creux entre le liseré du bouton et les zones (`12` = comme aujourd'hui) | `12` |
+| `zone_edge` | px : au bord du disque, largeur de la marge (`zone_fade: none`), du fondu (`edge`) ou de l'ombre (`knob`) | `14` |
+| `zone_fade` | fondu de la zone survolée : `edge` (estompée vers le bord du disque), `knob` (la zone va jusqu'au bord du disque, ombrée depuis ce bord et au pied du bouton : effet de profondeur), `none` (nette des deux côtés) | `edge` |
+| `zone_style` | forme de la zone survolée : `fill`, `halo` (un disque de lumière centré sur l'icône), `band` (bandeau au bord) | `fill` |
+| `separators` | traits entre les zones : `normal`, `soft` (discrets), `none` | `normal` |
+| `knob_press` | à l'ouverture, le bouton s'enfonce puis se cale | `false` |
+| `open_wave` | à l'ouverture, une onde de la couleur de l'entrée parcourt la couronne | `false` |
 | `auto_close` | secondes avant réduction (0 = jamais) | `10` |
 | `card_style` | `border_only`, `standard`, `background_only`, `transparent` ([voir plus bas](#apparence-de-la-carte)) | `border_only` |
 | `card_background`, `card_border_color` | couleurs CSS | thème |
@@ -383,6 +422,25 @@ Le fond et le contour de la carte suivent toujours le thème (sauf couleur chois
 Dans l'éditeur (**Apparence de la carte**), choisissez le fond et le contour de la carte : contour sans fond (par défaut), fond + contour, fond sans contour ou **transparente**, pour poser le bouton directement sur le fond du tableau de bord. Les couleurs se choisissent avec `card_background` et `card_border_color` ; sinon, celles du thème s'appliquent.
 
 ![Apparence de la carte](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/apparence.png)
+
+### Couronne ouverte : zones et icônes
+
+Par défaut, la couronne ouverte garde sa forme actuelle. La section dépliante **Couronne ouverte : zones et icônes** de l'éditeur (fermée par défaut, avec un bouton **Revenir à la forme d'origine**) permet de la resserrer pour agrandir les zones tactiles : faire commencer les zones au liseré du bouton (`zone_gap: 0`), rapprocher les icônes (`icon_radius`), faire reculer le bouton à l'ouverture (`knob_shrink`) ou agrandir le disque (`open_size`). Deux effets d'ouverture facultatifs l'accompagnent : la **pression** (le bouton s'enfonce puis se cale) et l'**onde** (un anneau de la couleur de l'entrée parcourt la couronne), ainsi que la forme de la zone survolée (`zone_style`), son fondu (`zone_fade` : vers le bord, ou vers le bouton pour un effet de profondeur) et les traits de séparation.
+
+![Réglages de la couronne ouverte](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/couronne.png)
+
+```yaml
+type: custom:radial-selector-card
+knob_shrink: 0.8        # le bouton recule de 20 % à l'ouverture
+icon_radius: 0.91       # icônes plus près du centre
+zone_gap: 0             # les zones commencent au liseré
+zone_edge: 10
+knob_press: true
+open_animation: bloom
+items:
+  - entity: light.salon
+  - entity: light.cuisine
+```
 
 ### Bouton rotatif physique (jumeau)
 
@@ -429,7 +487,7 @@ Un appui sur une entrée de la carte la fait piloter ensuite par le bouton. Depu
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 263 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
+npm test          # 311 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
 ```
 
 Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**). Historique : [CHANGELOG.md](CHANGELOG.md).
@@ -441,3 +499,5 @@ Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**).
 3. **Ensuite seulement**, créez la release GitHub `vX.Y.Z` sur `main` (ou `./scripts/release.sh vX.Y.Z`) : le tag contient alors le bon CHANGELOG.
 
 Le workflow **Release** joint le fichier de la carte à la release ; la Marketplace la propose ensuite en mise à jour.
+
+</details>
