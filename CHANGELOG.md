@@ -4,6 +4,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.8.2] — 2026-11-16
+
+### Corrigé
+- **Ombre du thème sur les boutons de coin et la ligne de boutons** : ces boutons avaient une ombre fixe et ignoraient l'ombre portée que le thème donne aux cartes (`ha-card-box-shadow`). Ils la reprennent maintenant : les boutons ronds avec le thème de bouton « Thème Home Assistant », et les tuiles avec tous les thèmes de bouton. L'ombre suit un changement de thème sans recharger, y compris quand la carte elle-même est transparente ou sans fond. Un thème sans ombre définie ne change rien ; un thème qui la met à « none » retire l'ombre des boutons.
+- 10 vérifications automatiques de plus (323 au total).
+
+#### English
+
+##### Fixed
+- **Theme shadow on the corner buttons and the row of buttons**: these buttons had a fixed shadow and ignored the drop shadow the theme gives to cards (`ha-card-box-shadow`). They now use it: round buttons with the "Home Assistant theme" knob, and tile buttons with every knob theme. The shadow follows a theme change without reloading, even when the card itself is transparent or has no background. A theme that defines no shadow changes nothing; a theme that sets it to "none" removes the buttons' shadow.
+- 10 more automated checks (323 in total).
+
 ## [1.8.1] — 2026-11-11
 
 ### Corrigé
@@ -260,6 +272,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.8.2]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.2
 [1.8.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.1
 [1.8.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.0
 [1.7.2]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.7.2
