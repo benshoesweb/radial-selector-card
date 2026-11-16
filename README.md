@@ -168,7 +168,7 @@ With these settings the whole card changes with your theme, in light and dark mo
 | Colors of entries without a chosen color: **HA theme primary color** | `palette: theme` | entries without a chosen color use the theme's primary color |
 | Number background and Digit color: left on **HA theme** | no `count_background` nor `count_color` | number of entities on in the theme's colors, digit always readable |
 
-The card background and border always follow the theme (unless you pick a color in "Card appearance"), and so does the editor. Hand-picked colors (`color`, `count_background`…) still win. The six other knob themes (metal, glass, soft, brass, carbon, neon) keep their material and only adapt their light and dark versions.
+The card background and border always follow the theme (unless you pick a color in "Card appearance"), and so does the editor. When the theme gives cards a drop shadow (`ha-card-box-shadow`), the corner buttons and the row of buttons use it too: round buttons with the **Home Assistant theme** knob, and tile buttons with every knob theme. Hand-picked colors (`color`, `count_background`…) still win. The six other knob themes (metal, glass, soft, brass, carbon, neon) keep their material and only adapt their light and dark versions.
 
 ![Editor](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/editor-en.png)
 
@@ -242,7 +242,7 @@ Tapping an entry in the card then makes the knob control it. From another automa
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 313 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
+npm test          # 323 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
 ```
 
 The tests also run on GitHub on every change (**Tests** workflow). History: [CHANGELOG.md](CHANGELOG.md).
@@ -413,7 +413,7 @@ Avec ces réglages, toute la carte change avec votre thème, en clair comme en s
 | Couleurs des entrées sans couleur choisie : **Couleur principale du thème HA** | `palette: theme` | entrées sans couleur choisie à la couleur principale du thème |
 | Fond du nombre et Couleur du chiffre : laissés sur **Thème HA** | sans `count_background` ni `count_color` | nombre d'entités allumées aux couleurs du thème, chiffre toujours lisible |
 
-Le fond et le contour de la carte suivent toujours le thème (sauf couleur choisie dans « Apparence de la carte »), de même que l'éditeur. Les couleurs choisies à la main (`color`, `count_background`…) restent prioritaires. Les six autres thèmes du bouton (métal, verre, doux, laiton, carbone, néon) gardent leur matière et n'adaptent que leurs versions claire et sombre.
+Le fond et le contour de la carte suivent toujours le thème (sauf couleur choisie dans « Apparence de la carte »), de même que l'éditeur. Quand le thème donne une ombre portée aux cartes (`ha-card-box-shadow`), les boutons de coin et la ligne de boutons la reprennent aussi : boutons ronds avec le thème de bouton **Thème Home Assistant**, et tuiles avec tous les thèmes de bouton. Les couleurs choisies à la main (`color`, `count_background`…) restent prioritaires. Les six autres thèmes du bouton (métal, verre, doux, laiton, carbone, néon) gardent leur matière et n'adaptent que leurs versions claire et sombre.
 
 ![Éditeur](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/editeur.png)
 
@@ -487,7 +487,7 @@ Un appui sur une entrée de la carte la fait piloter ensuite par le bouton. Depu
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 313 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
+npm test          # 323 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
 ```
 
 Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**). Historique : [CHANGELOG.md](CHANGELOG.md).

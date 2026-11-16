@@ -194,7 +194,9 @@
   ));
 
   const CARD_STYLES = `
-    :host { display: block; }
+    /* Ombre des cartes du thème (--ha-card-box-shadow), lue ici, avant que card_style ne la retire de la carte :
+       les boutons de coin et de ligne la reprennent. Thème sans ombre définie : ombre propre à la carte */
+    :host { display: block; --rsc-theme-shadow: var(--ha-card-box-shadow); }
     /* Le fond et le contour viennent de ha-card (thème HA), réglés par card_style via
        --ha-card-background / --ha-card-border-width / --ha-card-border-color / --ha-card-box-shadow */
     ha-card {
@@ -1050,7 +1052,8 @@
       --rsc-xoff: #bf616a;
       border-radius: calc(var(--rsc-xsize) * 0.22);
       background: var(--rsc-xbg);
-      box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+      /* Tuile : ombre des cartes du thème, sinon l'ombre propre à la carte */
+      box-shadow: var(--rsc-theme-shadow, 0 2px 6px rgb(0 0 0 / 0.35));
       overflow: hidden;
       isolation: isolate;
     }
@@ -1082,7 +1085,7 @@
     }
     .xbtn.tile ha-icon, .rbtn.tile ha-icon { position: relative; z-index: 2; --mdc-icon-size: calc(var(--rsc-xsize) * 0.55); }
     .xbtn.tile.on, .rbtn.tile.on,
-    .wrap:not(.dark) .xbtn.tile.on, .wrap:not(.dark) .rbtn.tile.on { color: var(--rsc-xcolor); box-shadow: 0 2px 6px rgb(0 0 0 / 0.35); }
+    .wrap:not(.dark) .xbtn.tile.on, .wrap:not(.dark) .rbtn.tile.on { color: var(--rsc-xcolor); box-shadow: var(--rsc-theme-shadow, 0 2px 6px rgb(0 0 0 / 0.35)); }
     .xbtn.tile.on::before, .rbtn.tile.on::before { opacity: 1; }
     .xbtn.tile.on ha-icon, .rbtn.tile.on ha-icon { filter: none; }
     @media (prefers-reduced-motion: reduce) {
@@ -1147,7 +1150,17 @@
       --rsc-shadow: 0 2px 10px rgb(0 0 0 / 0.16), 0 10px 30px rgb(0 0 0 / 0.12);
     }
     .wrap.skin-ha .xbtn, .wrap.skin-ha .rbtn {
-      --rsc-xbtn-shadow: 0 0 0 1px var(--divider-color, rgb(0 0 0 / 0.12)), 0 2px 6px rgb(0 0 0 / 0.25);
+      --rsc-xbtn-shadow: 0 0 0 1px var(--divider-color, rgb(0 0 0 / 0.12));
+    }
+    /* Ombre portée des boutons de coin et de ligne : celle des cartes du thème (--ha-card-box-shadow),
+       posée sur un calque à part pour accepter aussi « none » */
+    .wrap.skin-ha .xbtn:not(.tile)::before, .wrap.skin-ha .rbtn:not(.tile)::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      box-shadow: var(--rsc-theme-shadow, 0 2px 6px rgb(0 0 0 / 0.25));
     }
 
     /* Verre dépoli : surfaces translucides et floutées (idéal sur un fond dégradé) */
