@@ -145,6 +145,7 @@ extra_buttons:
 | `zone_fade` | fade of the hovered zone: `edge` (fades toward the disc edge), `knob` (the zone reaches the disc edge and is shaded from that edge and at the foot of the knob: a depth effect), `none` (sharp on both sides) | `edge` |
 | `zone_style` | shape of the hovered zone: `fill`, `halo` (a disc of light centered on the icon), `band` (at the edge) | `fill` |
 | `separators` | lines between the zones: `normal`, `soft`, `none` | `normal` |
+| `glow_size` | 0 to 200 %: size of the colored glow of the selected or hovered entry, between its icon and the knob (`0` = no glow) | `100` |
 | `knob_press` | when opening, the knob sinks then settles | `false` |
 | `open_wave` | when opening, a ring in the entry's color sweeps the dial | `false` |
 | `auto_close` | seconds before the dial closes (0 = never) | `10` |
@@ -180,7 +181,7 @@ In the editor (**Card appearance**), choose the card's background and border: bo
 
 ### Open dial: zones and icons
 
-By default the open dial keeps its current shape. The editor's collapsible section **Open dial: zones and icons** (closed by default, with a **Back to the original shape** button) lets you tighten the ring to enlarge the touch zones: start the zones right at the knob rim (`zone_gap: 0`), bring the icons closer (`icon_radius`), shrink the knob when it opens (`knob_shrink`) or enlarge the disc (`open_size`). Two optional opening effects come with it: **press** (the knob sinks then settles) and **wave** (a ring in the entry's color sweeps the dial), plus the shape of the hovered zone (`zone_style`), its fade (`zone_fade`: toward the edge, or toward the knob for a depth effect) and the separator lines.
+By default the open dial keeps its current shape. The editor's collapsible section **Open dial: zones and icons** (closed by default, with a **Back to the original shape** button) lets you tighten the ring to enlarge the touch zones: start the zones right at the knob rim (`zone_gap: 0`), bring the icons closer (`icon_radius`), shrink the knob when it opens (`knob_shrink`) or enlarge the disc (`open_size`). Two optional opening effects come with it: **press** (the knob sinks then settles) and **wave** (a ring in the entry's color sweeps the dial), plus the shape of the hovered zone (`zone_style`), its fade (`zone_fade`: toward the edge, or toward the knob for a depth effect) and the separator lines. The colored glow of the selected or hovered entry, between its icon and the knob, can be made smaller, larger or removed (`glow_size`, in %).
 
 ![Open dial settings](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/couronne.png)
 
@@ -242,7 +243,7 @@ Tapping an entry in the card then makes the knob control it. From another automa
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 323 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
+npm test          # 333 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
 ```
 
 The tests also run on GitHub on every change (**Tests** workflow). History: [CHANGELOG.md](CHANGELOG.md).
@@ -390,6 +391,7 @@ extra_buttons:
 | `zone_fade` | fondu de la zone survolée : `edge` (estompée vers le bord du disque), `knob` (la zone va jusqu'au bord du disque, ombrée depuis ce bord et au pied du bouton : effet de profondeur), `none` (nette des deux côtés) | `edge` |
 | `zone_style` | forme de la zone survolée : `fill`, `halo` (un disque de lumière centré sur l'icône), `band` (bandeau au bord) | `fill` |
 | `separators` | traits entre les zones : `normal`, `soft` (discrets), `none` | `normal` |
+| `glow_size` | 0 à 200 % : taille de la lueur colorée de l'entrée choisie ou survolée, entre son icône et le bouton (`0` = pas de lueur) | `100` |
 | `knob_press` | à l'ouverture, le bouton s'enfonce puis se cale | `false` |
 | `open_wave` | à l'ouverture, une onde de la couleur de l'entrée parcourt la couronne | `false` |
 | `auto_close` | secondes avant réduction (0 = jamais) | `10` |
@@ -425,7 +427,7 @@ Dans l'éditeur (**Apparence de la carte**), choisissez le fond et le contour de
 
 ### Couronne ouverte : zones et icônes
 
-Par défaut, la couronne ouverte garde sa forme actuelle. La section dépliante **Couronne ouverte : zones et icônes** de l'éditeur (fermée par défaut, avec un bouton **Revenir à la forme d'origine**) permet de la resserrer pour agrandir les zones tactiles : faire commencer les zones au liseré du bouton (`zone_gap: 0`), rapprocher les icônes (`icon_radius`), faire reculer le bouton à l'ouverture (`knob_shrink`) ou agrandir le disque (`open_size`). Deux effets d'ouverture facultatifs l'accompagnent : la **pression** (le bouton s'enfonce puis se cale) et l'**onde** (un anneau de la couleur de l'entrée parcourt la couronne), ainsi que la forme de la zone survolée (`zone_style`), son fondu (`zone_fade` : vers le bord, ou vers le bouton pour un effet de profondeur) et les traits de séparation.
+Par défaut, la couronne ouverte garde sa forme actuelle. La section dépliante **Couronne ouverte : zones et icônes** de l'éditeur (fermée par défaut, avec un bouton **Revenir à la forme d'origine**) permet de la resserrer pour agrandir les zones tactiles : faire commencer les zones au liseré du bouton (`zone_gap: 0`), rapprocher les icônes (`icon_radius`), faire reculer le bouton à l'ouverture (`knob_shrink`) ou agrandir le disque (`open_size`). Deux effets d'ouverture facultatifs l'accompagnent : la **pression** (le bouton s'enfonce puis se cale) et l'**onde** (un anneau de la couleur de l'entrée parcourt la couronne), ainsi que la forme de la zone survolée (`zone_style`), son fondu (`zone_fade` : vers le bord, ou vers le bouton pour un effet de profondeur) et les traits de séparation. La lueur colorée de l'entrée choisie ou survolée, entre son icône et le bouton, peut être réduite, agrandie ou supprimée (`glow_size`, en %).
 
 ![Réglages de la couronne ouverte](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/couronne.png)
 
@@ -487,7 +489,7 @@ Un appui sur une entrée de la carte la fait piloter ensuite par le bouton. Depu
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 323 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
+npm test          # 333 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
 ```
 
 Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**). Historique : [CHANGELOG.md](CHANGELOG.md).

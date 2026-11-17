@@ -197,6 +197,65 @@ module.exports = async (browser, h) => {
     await t.close();
   }
 
+  group('Lueur de l\'entrée choisie ou survolée (glow_size)');
+  {
+    const t = await h.open(browser, h.cards(['a']));
+    const { page } = t;
+    const glow = (page) => page.evaluate(() => {
+      const s = document.getElementById('a').shadowRoot; const li = s.querySelector('li');
+      const cs = getComputedStyle(li, '::before'); const m = (cs.transform.match(/matrix\(([^)]+)\)/) || [, ''])[1].split(',').map(Number);
+      return { sx: +m[0].toFixed(3), sy: +m[3].toFixed(3), blur: (cs.filter.match(/blur\(([\d.]+)px\)/) || [])[1], hot: li.classList.contains('hot'), opacity: (cs.filter.match(/opacity\(([\d.]+)\)/) || [])[1] };
+    });
+    await open(page, {});
+    let g = await glow(page);
+    check('sans option : lueur d\'origine (1,5 × 1, flou 12 px), visible sur l\'entrée choisie', g.sx === 1.5 && g.sy === 1 && g.blur === '12' && g.hot && g.opacity === '1', g);
+    await open(page, { glow_size: 50 });
+    g = await glow(page);
+    check('glow_size: 50 → lueur deux fois plus petite (0,75 × 0,5, flou 6 px)', g.sx === 0.75 && g.sy === 0.5 && g.blur === '6', g);
+    await open(page, { glow_size: 200 });
+    g = await glow(page);
+    check('glow_size: 200 → lueur deux fois plus grande', g.sx === 3 && g.sy === 2 && g.blur === '24', g);
+    await open(page, { glow_size: 0 });
+    g = await glow(page);
+    check('glow_size: 0 → pas de lueur', g.sx === 0 && g.sy === 0, g);
+    await open(page, { glow_size: 900 });
+    check('valeur hors limites bornée à 200', (await glow(page)).sx === 3);
+    // Partie visible de la lueur, au-dessus de l'anneau du bouton : nombre de pixels qui changent par rapport à « sans lueur »
+    const shot = async (cfg) => {
+      await open(page, { show_brightness: false, ...cfg });
+      const c = await page.evaluate(() => { const r = document.getElementById('a').shadowRoot.querySelector('.selector').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, D: r.width }; });
+      return (await page.screenshot({ clip: { x: c.x - c.D * 0.45, y: c.y - c.D * 0.87, width: c.D * 0.9, height: c.D * 0.14 } })).toString('base64');
+    };
+    const base = await shot({ glow_size: 0 });
+    const lit = async (cfg) => {
+      const b64 = await shot(cfg);
+      return page.evaluate(async ([a, b]) => {
+        const load = (x) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = 'data:image/png;base64,' + x; });
+        const [ia, ib] = await Promise.all([load(a), load(b)]);
+        const px = (im) => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0); return x.getImageData(0, 0, im.width, im.height).data; };
+        const da = px(ia), db = px(ib); let n = 0;
+        for (let i = 0; i < da.length; i += 4) if (Math.abs(da[i] - db[i]) + Math.abs(da[i + 1] - db[i + 1]) + Math.abs(da[i + 2] - db[i + 2]) > 24) n += 1;
+        return n;
+      }, [base, b64]);
+    };
+    const v100 = await lit({}); const v50 = await lit({ glow_size: 50 }); const v200 = await lit({ glow_size: 200 });
+    check('partie visible au-dessus de l\'anneau : 50 % reste visible et plus petit que 100 %, 200 % plus grand', v50 > 20 && v50 < v100 * 0.75 && v200 > v100 * 1.3, { v50, v100, v200 });
+    // Bouton réduit à l'ouverture : la lueur descend d'autant que le bord du bouton recule
+    const ty = (page) => page.evaluate(() => {
+      const s = document.getElementById('a').shadowRoot;
+      const m = getComputedStyle(s.querySelector('li'), '::before').transform.match(/matrix\(([^)]+)\)/)[1].split(',').map(Number);
+      return { ty: m[5], knob: s.querySelector('.knob').getBoundingClientRect().width };
+    });
+    await open(page, {}); const t1 = await ty(page);
+    await open(page, { knob_shrink: 0.8, zone_gap: 0 }); const t2 = await ty(page);
+    const recul = (t1.knob - t2.knob) / 2;
+    check('bouton réduit : la lueur suit le bord du bouton', recul > 5 && Math.abs((t2.ty - t1.ty) - recul) < 1, { t1, t2, recul });
+    const v100s = await lit({ knob_shrink: 0.8, zone_gap: 0 });
+    check('bouton réduit : la lueur reste visible au-dessus de l\'anneau', v100s > 20, { v100s });
+    check('aucune erreur JS', t.errors.length === 0, t.errors);
+    await t.close();
+  }
+
   group('Éditeur : toutes les sections en menus dépliants');
   {
     const t = await h.open(browser, '<div id="host" style="width:620px"></div>', { w: 700, h: 1400 });
@@ -249,6 +308,7 @@ module.exports = async (browser, h) => {
       range('knob_shrink', 0.8); r.c = last().knob_shrink;
       range('icon_radius', 0.9); r.d = last().icon_radius;
       range('zone_edge', 6); r.e = last().zone_edge;
+      range('glow_size', 50); r.glow = last().glow_size; range('glow_size', 100); r.glow2 = 'glow_size' in last(); range('glow_size', 40);
       range('zone_gap', 0); r.f = last().zone_gap;
       range('zone_gap', 12); r.g = 'zone_gap' in last();
       const sel = $('[data-field="zone_style"]'); sel.value = 'halo'; sel.dispatchEvent(new Event('change')); r.h = last().zone_style;
@@ -258,17 +318,18 @@ module.exports = async (browser, h) => {
       const wave = $('[data-field="open_wave"]'); wave.checked = true; wave.dispatchEvent(new Event('change')); r.l = last().open_wave;
       wave.checked = false; wave.dispatchEvent(new Event('change')); r.m = 'open_wave' in last();
       zf.value = 'knob'; zf.dispatchEvent(new Event('change'));
-      r.before = Object.keys(last()).filter((k) => ['knob_shrink', 'icon_radius', 'zone_edge', 'separators', 'knob_press', 'zone_fade'].includes(k)).length;
-      $('[data-ring-reset]').click(); r.after = Object.keys(last()).filter((k) => ['open_size', 'knob_shrink', 'icon_radius', 'zone_gap', 'zone_edge', 'zone_style', 'zone_fade', 'separators', 'knob_press', 'open_wave'].includes(k)).length;
+      r.before = Object.keys(last()).filter((k) => ['knob_shrink', 'icon_radius', 'zone_edge', 'separators', 'knob_press', 'zone_fade', 'glow_size'].includes(k)).length;
+      $('[data-ring-reset]').click(); r.after = Object.keys(last()).filter((k) => ['open_size', 'knob_shrink', 'icon_radius', 'zone_gap', 'zone_edge', 'glow_size', 'zone_style', 'zone_fade', 'separators', 'knob_press', 'open_wave'].includes(k)).length;
       r.stillOpen = $('details.section.ring').open;
       return r;
     });
-    check('section fermée par défaut, titre « Couronne ouverte : zones et icônes », 10 réglages', r.closed && r.title === 'Couronne ouverte : zones et icônes' && r.fields.length === 10, r);
+    check('section fermée par défaut, titre « Couronne ouverte : zones et icônes », 11 réglages', r.closed && r.title === 'Couronne ouverte : zones et icônes' && r.fields.length === 11, r);
     check('fondu de la zone : knob écrit, edge (défaut) retiré', r.zf === 'knob' && r.zf2 === false, r);
     check('curseurs : valeur écrite, valeur par défaut retirée ; la section reste ouverte', r.a === 270 && r.b === false && r.openAfter && r.c === 0.8 && r.d === 0.9 && r.e === 6, r);
     check('creux (curseur) : 0 écrit, 12 (= actuel) retiré', r.f === 0 && r.g === false, r);
     check('listes et cases : halo / fill retiré, none, pression, onde', r.h === 'halo' && r.i === false && r.j === 'none' && r.k === true && r.l === true && r.m === false, r);
-    check('« Revenir à la forme d\'origine » retire tous les réglages de la section', r.before === 6 && r.after === 0 && r.stillOpen, r);
+    check('« Revenir à la forme d\'origine » retire tous les réglages de la section', r.before === 7 && r.after === 0 && r.stillOpen, r);
+    check('lueur (curseur) : 50 écrit, 100 (= d\'origine) retiré', r.glow === 50 && r.glow2 === false, r);
     check('éditeur : aucune erreur JS', t.errors.length === 0, t.errors);
     await t.close();
     const e = await h.open(browser, '<div id="host" style="width:620px"></div>', { w: 700, h: 1400, lang: 'en' });
