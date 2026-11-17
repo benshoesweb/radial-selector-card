@@ -12,6 +12,10 @@ A rotary selector for Home Assistant dashboards: your lights and devices around 
 
 ![Demo](https://raw.githubusercontent.com/benshoesweb/radial-selector-card/main/images/demo.gif)
 
+*In the preview: a light, a thermostat, a roller shutter, an amplifier and a fan on the same dial, then a group — long press an entry and turn to set it.*
+
+*Dans l'aperçu : une lumière, un thermostat, un volet roulant, un ampli et un ventilateur sur la même couronne, puis un groupe — appui long sur une entrée, puis tournez pour la régler.*
+
 <details>
 <summary><h2>English</h2> (click to unfold)</summary>
 
@@ -243,7 +247,7 @@ Tapping an entry in the card then makes the knob control it. From another automa
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 333 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
+npm test          # 337 checks in Chrome: mouse, finger, keyboard, wheel, groups, editor…
 ```
 
 The tests also run on GitHub on every change (**Tests** workflow). History: [CHANGELOG.md](CHANGELOG.md).
@@ -489,7 +493,7 @@ Un appui sur une entrée de la carte la fait piloter ensuite par le bouton. Depu
 ```bash
 npm ci
 npx playwright install chromium
-npm test          # 333 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
+npm test          # 337 vérifications dans Chrome : souris, doigt, clavier, molette, groupes, éditeur…
 ```
 
 Les tests tournent aussi sur GitHub à chaque modification (workflow **Tests**). Historique : [CHANGELOG.md](CHANGELOG.md).
