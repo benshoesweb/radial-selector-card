@@ -4,6 +4,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les
 
 *Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), following [semantic versioning](https://semver.org/). Each version is described in French, then in English.*
 
+## [1.9.0] — 2026-11-17
+
+### Ajouté
+- **Taille de la lueur de l'entrée choisie ou survolée** (`glow_size`, 0 à 200 %, 100 par défaut) : la lueur colorée qui apparaît entre l'icône de l'entrée et le bouton central peut être réduite, agrandie ou supprimée (`0`). Elle grandit et rétrécit depuis le bord du bouton, donc elle reste visible même petite, et elle suit le bouton quand il recule à l'ouverture (`knob_shrink`). Le réglage est une barre dans le menu « Couronne ouverte » de l'éditeur, avec aperçu en direct ; sans réglage, rien ne change.
+- 10 vérifications automatiques de plus (333 au total).
+
+#### English
+
+##### Added
+- **Size of the glow of the selected or hovered entry** (`glow_size`, 0 to 200 %, 100 by default): the colored glow that appears between the entry's icon and the central knob can be made smaller, larger or removed (`0`). It grows and shrinks from the knob's edge, so it stays visible even when small, and it follows the knob when it moves back on opening (`knob_shrink`). The setting is a slider in the editor's "Open dial" menu, with live preview; without it, nothing changes.
+- 10 more automated checks (333 in total).
+
 ## [1.8.2] — 2026-11-16
 
 ### Corrigé
@@ -272,6 +284,7 @@ Première version publique : cercle de 2 à 10 entrées, zones tactiles, variate
 
 First public release: dial of 2 to 10 entries, touch zones, dimmer (long press, mouse wheel), percentage under lights, corner buttons, button row, 7 themes, 7 opening animations, card appearance, full visual editor, touch screen, mouse and keyboard, auto-collapse.
 
+[1.9.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.9.0
 [1.8.2]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.2
 [1.8.1]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.1
 [1.8.0]: https://github.com/benshoesweb/radial-selector-card/releases/tag/v1.8.0

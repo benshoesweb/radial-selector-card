@@ -53,6 +53,8 @@
  *   separators        normal (défaut) | soft (discrets) | none
  *   knob_press        true : à l'ouverture, le bouton s'enfonce puis se cale (défaut false)
  *   open_wave         true : une onde de la couleur de l'entrée parcourt la couronne à l'ouverture (défaut false)
+ *   glow_size         0–200 (défaut 100) : taille, en %, de la lueur colorée de l'entrée choisie ou survolée,
+ *                     entre son icône et le bouton (0 = pas de lueur)
  *   zone_opacity      0–100 (défaut 80) : intensité du remplissage de la zone tactile éclairée.
  *                     Un secteur par entrée, séparé par un trait ; il se remplit de la couleur de
  *                     l'entrée uniquement sous la souris ou le doigt. 0 = jamais rempli (zones toujours
@@ -108,7 +110,7 @@
   const SEPARATORS = ['normal', 'soft', 'none'];
   const ZONE_FADES = ['edge', 'knob', 'none'];
   // Couronne ouverte : valeurs de la forme actuelle (voir ringGeometry)
-  const RING_DEFAULTS = { open_size: 260, knob_shrink: 1, icon_radius: 0.99, zone_gap: 12, zone_edge: 14 };
+  const RING_DEFAULTS = { open_size: 260, knob_shrink: 1, icon_radius: 0.99, zone_gap: 12, zone_edge: 14, glow_size: 100 };
   const numIn = (v, d, lo, hi) => { const n = Number(v); return v !== null && v !== undefined && v !== '' && Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
   // Géométrie de la couronne ouverte, bornée. Sans option, c'est exactement la forme d'origine.
   const ringGeometry = (c) => {
@@ -121,6 +123,7 @@
       zone: ZONE_STYLES.includes(c.zone_style) ? c.zone_style : 'fill',
       sep: SEPARATORS.includes(c.separators) ? c.separators : 'normal',
       fade: ZONE_FADES.includes(c.zone_fade) ? c.zone_fade : 'edge',
+      glow: numIn(c.glow_size, 100, 0, 200) / 100,
       press: c.knob_press === true,
       wave: c.open_wave === true,
     };
@@ -300,6 +303,7 @@
       --rsc-zedge: 14px;
       --rsc-zin: calc(var(--radius) * 0.64 + 12px);
       --rsc-knob-scale: 1;
+      --rsc-glow: 1;
       --rsc-accent-on-code: var(--rsc-angle) 100% 72%;
       --rsc-accent-on-darker-code: var(--rsc-angle) 98% 61%;
       --rsc-accent-on: hsl(var(--rsc-accent-on-code) / 1);
@@ -573,9 +577,13 @@
       aspect-ratio: 1 / 1;
       background: var(--rsc-c);
       box-shadow: 0 0 6px var(--rsc-cd);
-      transform: translateY(175%) scaleX(1.5);
-      filter: blur(12px) opacity(var(--rsc-is-selected)) saturate(2);
-      transition: --rsc-is-selected 0.2s ease 0.1s;
+      /* Lueur de l'entrée choisie ou survolée ; taille réglable (glow_size : --rsc-glow, 1 = d'origine).
+         Elle grandit et rétrécit depuis le bord de l'anneau du bouton (sa partie basse est cachée dessous),
+         et suit le bouton quand il recule à l'ouverture (knob_shrink) */
+      transform-origin: 50% max(0px, calc(var(--radius) * 0.13 - 13px));
+      transform: translateY(calc(175% + (1 - var(--rsc-knob-scale)) * var(--radius) * 0.5)) scale(calc(1.5 * var(--rsc-glow)), var(--rsc-glow));
+      filter: blur(calc(12px * var(--rsc-glow))) opacity(var(--rsc-is-selected)) saturate(2);
+      transition: --rsc-is-selected 0.2s ease 0.1s, transform 0.4s var(--rsc-cubic);
       pointer-events: none;
     }
 
@@ -1465,7 +1473,7 @@
 
       sec_ring: 'Couronne ouverte : zones et icônes', ring_hint: 'Sans réglage, la couronne garde sa forme actuelle. Rapprochez les icônes et supprimez le creux pour agrandir les zones ; faites reculer le bouton pour les agrandir encore. Les icônes ne descendent jamais plus bas que ce qui laisse leur nom et leur valeur hors du bouton. Le remplissage de la zone survolée et l\'animation d\'ouverture se règlent dans « Style du bouton ».',
       open_size: 'Disque ouvert :', open_size_unit: '% du bouton', knob_shrink: 'Bouton à l\'ouverture : ×', icon_radius: 'Icônes, distance au centre : ×', icon_radius_unit: 'bouton',
-      zone_gap: 'Creux entre le liseré et les zones (12 = actuel) :', zone_edge: 'Au bord du disque (marge, fondu ou ombre) :',
+      zone_gap: 'Creux entre le liseré et les zones (12 = actuel) :', zone_edge: 'Au bord du disque (marge, fondu ou ombre) :', glow_size: 'Lueur de l\'entrée choisie ou survolée :',
       zone_style: 'Forme de la zone survolée', zs_fill: 'Remplissage plein (défaut)', zs_halo: 'Halo : disque de lumière centré sur l\'icône', zs_band: 'Bandeau au bord',
       separators: 'Traits de séparation', sep_normal: 'Normaux (défaut)', sep_soft: 'Discrets', sep_none: 'Aucun',
       zone_fade: 'Fondu de la zone survolée', zf_edge: 'Vers le bord du disque (défaut)', zf_knob: 'Profondeur : zone ombrée contre la paroi et au pied du bouton', zf_none: 'Aucun : nette des deux côtés',
@@ -1552,7 +1560,7 @@
 
       sec_ring: 'Open dial: zones and icons', ring_hint: 'Without settings, the dial keeps its current shape. Bring the icons closer and remove the gap to enlarge the zones; shrink the knob to enlarge them further. The icons never go closer than what keeps their name and value clear of the knob. The hovered zone fill and the opening animation are set under "Knob style".',
       open_size: 'Open disc:', open_size_unit: '% of the knob', knob_shrink: 'Knob when open: ×', icon_radius: 'Icons, distance from center: ×', icon_radius_unit: 'knob',
-      zone_gap: 'Gap between the rim and the zones (12 = current):', zone_edge: 'At the disc edge (margin, fade or shadow):',
+      zone_gap: 'Gap between the rim and the zones (12 = current):', zone_edge: 'At the disc edge (margin, fade or shadow):', glow_size: 'Glow of the selected or hovered entry:',
       zone_style: 'Hovered zone shape', zs_fill: 'Full fill (default)', zs_halo: 'Halo: disc of light centered on the icon', zs_band: 'Band at the edge',
       separators: 'Separator lines', sep_normal: 'Normal (default)', sep_soft: 'Subtle', sep_none: 'None',
       zone_fade: 'Hovered zone fade', zf_edge: 'Toward the disc edge (default)', zf_knob: 'Depth: zone shaded against the wall and at the foot of the knob', zf_none: 'None: sharp on both sides',
@@ -1885,7 +1893,7 @@
       // Couronne ouverte : géométrie et effets choisis (sans option : forme d'origine)
       const g = ringGeometry(c);
       const ringClasses = `${g.press ? ' press' : ''}${g.wave ? ' wave' : ''}${g.zone !== 'fill' ? ` zone-${g.zone}` : ''}${g.sep !== 'normal' ? ` sep-${g.sep}` : ''}${g.fade !== 'edge' ? ` fade-${g.fade}` : ''}`;
-      const ringVars = `--rsc-open:${g.open};--rsc-ks:${g.ks};--rsc-io-cfg:${g.io};--rsc-ir:${g.ir};--rsc-zedge:${g.edge}px;--rsc-zin:${g.zin}`;
+      const ringVars = `--rsc-open:${g.open};--rsc-ks:${g.ks};--rsc-io-cfg:${g.io};--rsc-ir:${g.ir};--rsc-zedge:${g.edge}px;--rsc-zin:${g.zin};--rsc-glow:${g.glow}`;
       this.shadowRoot.innerHTML = `
         <style>${CARD_STYLES}</style>
         <ha-card style="${this._cardStyle()}"${this._hasTitle() ? ` header="${esc(c.name)}"` : ''}>
@@ -3777,6 +3785,8 @@
                 <input type="range" data-field="icon_radius" min="0.8" max="1.07" step="0.01" value="${esc(rg.icon_radius)}"></div>
               <div class="field"><label>${esc(t('zone_edge'))} <span data-range-label="zone_edge">${esc(rg.zone_edge)}</span> px</label>
                 <input type="range" data-field="zone_edge" min="2" max="40" step="1" value="${esc(rg.zone_edge)}"></div>
+              <div class="field"><label>${esc(t('glow_size'))} <span data-range-label="glow_size">${esc(rg.glow_size)}</span> %</label>
+                <input type="range" data-field="glow_size" min="0" max="200" step="10" value="${esc(rg.glow_size)}"></div>
               <div class="field"><label>${esc(t('zone_gap'))} <span data-range-label="zone_gap">${esc(rg.zone_gap)}</span> px</label>
                 <input type="range" data-field="zone_gap" min="0" max="30" step="1" value="${esc(rg.zone_gap)}"></div>
               <div class="field"><label>${esc(t('zone_style'))}</label>
@@ -4026,7 +4036,7 @@
         }));
 
         own('[data-ring-reset]').forEach((btn) => btn.addEventListener('click', () => {
-          this._patch('__top', 0, Object.fromEntries(['open_size', 'knob_shrink', 'icon_radius', 'zone_gap', 'zone_edge', 'zone_style', 'zone_fade', 'separators', 'knob_press', 'open_wave'].map((k) => [k, undefined])));
+          this._patch('__top', 0, Object.fromEntries(['open_size', 'knob_shrink', 'icon_radius', 'zone_gap', 'zone_edge', 'glow_size', 'zone_style', 'zone_fade', 'separators', 'knob_press', 'open_wave'].map((k) => [k, undefined])));
         }));
 
         own('select[data-field]').forEach((sel) => sel.addEventListener('change', () => {
