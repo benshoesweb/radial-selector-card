@@ -111,6 +111,36 @@ module.exports = async (browser, h) => {
     await t.close();
   }
 
+  group('Groupes : réglage d\'un enfant');
+  {
+    const t = await h.open(browser, h.cards(['a']));
+    const { page } = t;
+    await page.evaluate((items) => { window.mk('a', { auto_close: 0 }, items); document.getElementById('a')._toggle(); }, ITEMS);
+    await page.waitForTimeout(700);
+    let g = await h.geo(page, 'a');
+    let p = h.at(g, 1, 1.9);
+    await page.mouse.click(p.x, p.y);
+    await page.waitForTimeout(800);
+    const s0 = await state(page);
+    g = await h.geo(page, 'a');
+    p = h.at(g, 0, 1.9);
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await page.waitForTimeout(1000);
+    const d = await page.evaluate(() => {
+      const s = window.sr('a');
+      return { dimming: s.querySelector('.selector').classList.contains('dimming'), pct: s.querySelector('.pct').textContent, pctOp: Number(getComputedStyle(s.querySelector('.pct')).opacity), crumbOp: Number(getComputedStyle(s.querySelector('.crumb')).opacity) };
+    });
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+    const s1 = await state(page);
+    check('dans un groupe : l\'icône du groupe est au centre du bouton', s0.inGroup && s0.crumbOp > 0.8, s0);
+    check('appui long sur un enfant : la valeur remplace l\'icône du groupe (pas de superposition)', d.dimming && d.pct === '25%' && d.pctOp === 1 && d.crumbOp === 0, d);
+    check('réglage terminé : l\'icône du groupe revient', s1.inGroup && s1.crumbOp > 0.8, s1);
+    check('aucune erreur JS', t.errors.length === 0, t.errors);
+    await t.close();
+  }
+
   group('Groupes : fermeture et variantes');
   {
     const t = await h.open(browser, h.cards(['a']));

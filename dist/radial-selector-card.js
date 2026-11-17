@@ -900,7 +900,8 @@
       opacity: 0.75;
     }
     .selector.active.in-group .crumb { opacity: 0.9; transform: scale(1); }
-    .selector.dimming .crumb { opacity: 0; }
+    /* Réglage en cours : l'icône du groupe s'efface devant la valeur (même sélecteur que ci-dessus + .dimming, pour l'emporter) */
+    .selector.dimming .crumb, .selector.active.in-group.dimming .crumb { opacity: 0; }
     /* Repère discret sous l'icône d'un groupe (fermé) */
     li.group:not(.has-lvl) .icon::after {
       content: "";
